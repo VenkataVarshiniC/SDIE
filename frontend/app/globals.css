@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", "IBM Plex Mono", "Cascadia Code", monospace;
+}
+
+body {
+  background-color: #0d1117;
+  color: #edeae1;
+}

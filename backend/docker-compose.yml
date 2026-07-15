@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: sdie
+      POSTGRES_PASSWORD: sdie
+      POSTGRES_DB: sdie
+    ports:
+      - "5432:5432"
+    volumes:
+      - sdie_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sdie"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn sdie.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "8000:8000"
+    environment:
+      SDIE_DATABASE_URL: postgresql+asyncpg://sdie:sdie@postgres:5432/sdie
+      SDIE_REDIS_URL: redis://redis:6379/0
+      SDIE_GROQ_API_KEY: ${SDIE_GROQ_API_KEY:-}
+      SDIE_GROQ_MODEL: ${SDIE_GROQ_MODEL:-llama-3.3-70b-versatile}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  sdie_postgres_data:
