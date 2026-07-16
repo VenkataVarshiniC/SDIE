@@ -58,6 +58,10 @@ class CashFlowModel(AggregateRoot):
     currency: str
     discount_rate: Percentage
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    cash_flows: list[CashFlow] = field(default_factory=list)
+    npv: Money | None = None
+    irr: Percentage | None = None
+    payback_period: Decimal | None = None
 
     def __post_init__(self) -> None:
         AggregateRoot.__init__(self)
@@ -70,7 +74,7 @@ class CashFlowModel(AggregateRoot):
         project_name: str,
         currency: str = "USD",
         discount_rate: Percentage,
-    ) -> "CashFlowModel":
+    ) -> CashFlowModel:
         if not project_name.strip():
             raise FinancialModelingError("project_name must not be empty")
         if discount_rate.fraction < 0:
@@ -92,14 +96,27 @@ class CashFlowModel(AggregateRoot):
         )
         return model
 
-    def record_scenario_evaluation(
-        self, scenario_name: str, npv: Money, irr: Percentage | None
+    def attach_evaluation(
+        self,
+        *,
+        cash_flows: list[CashFlow],
+        npv: Money,
+        irr: Percentage | None,
+        payback_period: Decimal | None,
     ) -> None:
+        """Records the base-case valuation on the aggregate itself, so it
+        round-trips through persistence — a model without its computed
+        results attached is not something this platform should be able to
+        reload and call 'the same analysis' later."""
+        self.cash_flows = cash_flows
+        self.npv = npv
+        self.irr = irr
+        self.payback_period = payback_period
         self.raise_event(
             ScenarioEvaluated(
                 tenant_id=self.tenant_id.value,
                 model_id=self.id,
-                scenario_name=scenario_name,
+                scenario_name="base",
                 npv=npv.amount,
                 irr=irr.fraction if irr else None,
             )

@@ -1,4 +1,5 @@
 import type {
+  AnalysisSummary,
   CashFlowModelResponse,
   CreateCashFlowModelRequest,
   EvaluateDecisionTreeRequest,
@@ -55,9 +56,26 @@ async function request<TResponse>(path: string, body: unknown): Promise<TRespons
   return res.json() as Promise<TResponse>;
 }
 
+async function getRequest<TResponse>(path: string): Promise<TResponse> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "GET",
+    headers: devPrincipalHeaders(),
+  });
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new ApiError(res.status, payload.detail ?? "Request failed");
+  }
+
+  return res.json() as Promise<TResponse>;
+}
+
 export const financialModelingApi = {
   createCashFlowModel: (req: CreateCashFlowModelRequest) =>
     request<CashFlowModelResponse>("/financial-modeling/cash-flow-models", req),
+
+  listCashFlowModels: () =>
+    getRequest<CashFlowModelResponse[]>("/financial-modeling/cash-flow-models"),
 
   evaluateScenarios: (req: EvaluateScenariosRequest) =>
     request<EvaluateScenariosResponse>("/financial-modeling/scenarios/evaluate", req),
@@ -72,4 +90,6 @@ export const decisionAnalysisApi = {
 
   evaluateDecisionTree: (req: EvaluateDecisionTreeRequest) =>
     request<EvaluateDecisionTreeResponse>("/decision-analysis/decision-tree/evaluate", req),
+
+  listAnalyses: () => getRequest<AnalysisSummary[]>("/decision-analysis/analyses"),
 };

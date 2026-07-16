@@ -24,24 +24,30 @@ class DecisionAnalysis(AggregateRoot):
     """Aggregate root recording that a decision-science method was run and
     what it recommended. The heavy numerical work happens in stateless
     domain services (services.py) — this aggregate exists to make the
-    *event* of running an analysis a first-class, auditable fact."""
+    *event* of running an analysis a first-class, auditable, persisted
+    fact, including the full result payload so it can be reloaded later
+    without re-running the computation."""
 
     id: UUID
     tenant_id: TenantId
     title: str
     method: str
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    recommended_option: str | None = None
+    result_data: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         AggregateRoot.__init__(self)
 
     @classmethod
-    def create(cls, *, tenant_id: TenantId, title: str, method: str) -> "DecisionAnalysis":
+    def create(cls, *, tenant_id: TenantId, title: str, method: str) -> DecisionAnalysis:
         if not title.strip():
             raise DecisionAnalysisError("title must not be empty")
         return cls(id=uuid4(), tenant_id=tenant_id, title=title, method=method)
 
-    def complete(self, recommended_option: str) -> None:
+    def complete(self, recommended_option: str, result_data: dict) -> None:
+        self.recommended_option = recommended_option
+        self.result_data = result_data
         self.raise_event(
             DecisionAnalysisCompleted(
                 tenant_id=self.tenant_id.value,

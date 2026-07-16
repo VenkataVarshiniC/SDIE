@@ -1,10 +1,10 @@
 # SDIE — Strategic Decision Intelligence Engine (scaffold)
 
 Modular-monolith backend (Clean Architecture / DDD, one bounded context per
-directory) + Next.js frontend. This scaffold implements two fully working
-bounded contexts end to end: **financial_modeling** and **decision_analysis**.
-Others (`problem_framing`, `evidence_research`, `workspace`) are stubbed as
-empty directories ready for the same layering.
+directory) + Next.js frontend. Four bounded contexts are fully working end
+to end: **financial_modeling**, **decision_analysis**, **evidence_research**,
+and **recommendation_synthesis**. `problem_framing` and `workspace` are
+still empty directories, ready for the same layering.
 
 ## Backend
 
@@ -52,7 +52,8 @@ Either way, once `SDIE_DATABASE_URL` is set:
 
 ```
 python -m alembic upgrade head        # create tables — required before hitting any endpoint that persists
-python -m pytest tests/unit -v        # 22 tests, pure domain logic, needs no DB at all
+python -m pytest tests/unit -v        # 38 tests, pure domain logic, needs no DB at all
+python -m pytest tests/integration -v # 12 tests against real Postgres, skip cleanly if unreachable
 
 uvicorn sdie.main:app --reload        # http://localhost:8000/docs
 ```
@@ -71,17 +72,50 @@ SDIE_GROQ_MODEL=llama-3.3-70b-versatile
 
 All LLM calls go through `shared_kernel/application/ports.py::LLMPort` —
 `shared_kernel/infrastructure/llm/groq_adapter.py` is the only file that
-imports the `groq` SDK. Swapping providers later means writing a new
-adapter behind the same port, not touching any use case or domain code.
-No context currently calls the LLM yet (evidence_research is still a stub);
-this wiring exists so that context can be built directly against
-`get_llm_client()` next.
+imports the `groq` SDK. No context calls the LLM yet — evidence retrieval
+is lexical (Postgres full-text search), not semantic, so nothing needs an
+embedding model today. This wiring exists so a future synthesis step (e.g.
+turning a `DecisionRationale` into prose) can call `get_llm_client()`
+directly.
 
 Note: HTTP routes require `X-Tenant-Id` / `X-User-Id` headers (stub auth —
-see `shared_kernel/infrastructure/auth.py`). Persisting cash-flow models and
-decision analyses requires the Postgres container to be up; the domain
-math itself (`domain/services.py` in each context) needs no infrastructure
-at all and is what the unit tests exercise.
+see `shared_kernel/infrastructure/auth.py`). Any unhandled server error
+returns a JSON body with a `trace_id` and logs the full traceback
+server-side (`shared_kernel/interface/error_handling.py`) — quote the
+trace_id back if you ever need to debug one.
+
+## What each context does
+
+- **financial_modeling** — DCF, NPV/IRR/payback, one-way sensitivity,
+  probability-weighted scenarios. Cash flows and computed results persist
+  (`GET /financial-modeling/cash-flow-models`).
+- **decision_analysis** — MCDA weighted-sum ranking, decision-tree EMV/EVPI,
+  Monte Carlo simulation, Bayesian updating. Every run persists its full
+  result payload (`GET /decision-analysis/analyses`).
+- **evidence_research** — ingest text documents, retrieve them via Postgres
+  native full-text search (`tsvector`/`ts_rank` — no pgvector extension or
+  embedding API required). Returns `Citation`s: exact excerpt + source
+  label, never a paraphrase (`POST /evidence-research/documents`,
+  `POST /evidence-research/search`).
+- **recommendation_synthesis** — the `DecisionRationale` aggregate: fuses a
+  quant analysis (from financial_modeling or decision_analysis) with cited
+  evidence into one auditable record. Analysts can override the
+  recommendation, but the original is never deleted — every override is
+  appended with a mandatory reason
+  (`POST /recommendation-synthesis/rationales`,
+  `POST /recommendation-synthesis/rationales/{id}/override`).
+
+## Testing & CI
+
+- `tests/unit/` — pure domain logic, no I/O, no DB. Runs anywhere, always.
+- `tests/integration/` — real Postgres round-trips (ORM mapping, the
+  generated `tsvector` column, RLS-scoped queries). Each test runs inside a
+  transaction that's rolled back at teardown, so nothing persists and there's
+  no separate test database to manage. Skips cleanly (not a failure) if
+  `SDIE_DATABASE_URL` doesn't resolve.
+- `.github/workflows/ci.yml` — runs both suites on GitHub's own runners
+  (which have Docker, independent of whether *you* do) via a Postgres
+  service container, plus `ruff` lint and a frontend typecheck + build.
 
 ## Frontend
 
@@ -92,7 +126,11 @@ npm run dev     # http://localhost:3000
 ```
 
 Talks to the backend via a Next.js rewrite (`/backend/* -> localhost:8000/*`),
-configurable through `NEXT_PUBLIC_API_BASE_URL`.
+configurable through `NEXT_PUBLIC_API_BASE_URL`. Financial modeling and
+decision analysis have full dashboards, including a "recent analyses"
+history panel backed by the new list endpoints. Evidence research and
+recommendation synthesis are API-only for now — reachable via
+`http://localhost:8000/docs`.
 
 ## Layout
 
@@ -103,6 +141,9 @@ backend/src/sdie/<context>/
   infrastructure/    SQLAlchemy repos, ORM models
   interface/          FastAPI router + Pydantic schemas
 
+backend/migrations/   Alembic — 0001 (financial + decision analysis),
+                      0002 (evidence research + recommendation synthesis)
+
 frontend/
   app/               Next.js routes (financial modeling, decision analysis)
   components/ui/     shared design-system primitives
@@ -111,7 +152,7 @@ frontend/
 
 ## What's next
 
-Evidence & Research (RAG ingestion + citation-grounded retrieval),
-Problem Framing (issue trees / MECE), and the Recommendation Synthesis
-context that fuses quant output with cited evidence into an auditable
-`DecisionRationale` aggregate.
+`problem_framing` (issue trees / MECE decomposition) is the remaining stub
+from the original architecture. Real auth (OIDC/JWT replacing the header
+stub) and a frontend for evidence_research / recommendation_synthesis are
+the next highest-value additions on top of what's here.

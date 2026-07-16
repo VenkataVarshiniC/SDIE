@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Panel } from "@/components/ui/panel";
 import { Stat } from "@/components/ui/stat";
@@ -86,6 +88,17 @@ export default function FinancialModelingPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        href="/"
+        className="group inline-flex items-center gap-2 text-sm text-muted hover:text-parchment transition-colors w-fit"
+      >
+        <ArrowLeft
+          size={16}
+          className="transition-transform duration-200 group-hover:-translate-x-1"
+        />
+        Back to overview
+      </Link>
+
       <div>
         <span className="text-[11px] uppercase tracking-wider text-ledger">Quant core / 01</span>
         <h1 className="font-display text-[28px] mt-1">Financial modeling</h1>
@@ -136,22 +149,27 @@ export default function FinancialModelingPage() {
         <div className="flex flex-col gap-6">
           <Panel eyebrow="Output" title="Valuation">
             {result ? (
-              <div className="grid grid-cols-3 gap-6">
-                <Stat
-                  label="Net present value"
-                  value={formatMoney(result.npv, result.currency)}
-                  tone={Number(result.npv) >= 0 ? "up" : "down"}
-                />
-                <Stat
-                  label="Internal rate of return"
-                  value={result.irr_percent ? `${Number(result.irr_percent).toFixed(1)}` : "—"}
-                  suffix={result.irr_percent ? "%" : undefined}
-                />
-                <Stat
-                  label="Payback period"
-                  value={result.payback_period ? Number(result.payback_period).toFixed(1) : "—"}
-                  suffix={result.payback_period ? "yrs" : undefined}
-                />
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-3 gap-6">
+                  <Stat
+                    label="Net present value"
+                    value={formatMoney(result.npv, result.currency)}
+                    tone={Number(result.npv) >= 0 ? "up" : "down"}
+                  />
+                  <Stat
+                    label="Internal rate of return"
+                    value={result.irr_percent ? `${Number(result.irr_percent).toFixed(1)}` : "—"}
+                    suffix={result.irr_percent ? "%" : undefined}
+                  />
+                  <Stat
+                    label="Payback period"
+                    value={result.payback_period ? Number(result.payback_period).toFixed(1) : "—"}
+                    suffix={result.payback_period ? "yrs" : undefined}
+                  />
+                </div>
+                <p className="text-sm text-muted leading-relaxed border-t border-ink-border pt-3">
+                  {describeValuation(result, discountRate)}
+                </p>
               </div>
             ) : (
               <p className="text-muted text-sm">Run the model to see valuation output.</p>
@@ -199,4 +217,30 @@ function formatMoney(value: string, currency: string): string {
   const n = Number(value);
   const sign = n < 0 ? "-" : "";
   return `${sign}${currency} ${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
+function describeValuation(result: CashFlowModelResponse, discountRatePercent: string): string {
+  const npv = Number(result.npv);
+  const irr = result.irr_percent !== null ? Number(result.irr_percent) : null;
+  const discountRate = Number(discountRatePercent);
+  const payback = result.payback_period !== null ? Number(result.payback_period) : null;
+
+  const npvSentence =
+    npv >= 0
+      ? `At a ${discountRate}% discount rate, this project creates value: its NPV is positive, meaning the discounted cash inflows exceed the initial investment.`
+      : `At a ${discountRate}% discount rate, this project destroys value: its NPV is negative, meaning the discounted cash inflows fall short of the initial investment.`;
+
+  const irrSentence =
+    irr === null
+      ? " No IRR could be computed — the cash flows never change sign, so there's no breakeven discount rate to solve for."
+      : irr > discountRate
+        ? ` Its IRR of ${irr.toFixed(1)}% is above the ${discountRate}% discount rate, consistent with the positive NPV.`
+        : ` Its IRR of ${irr.toFixed(1)}% is below the ${discountRate}% discount rate, consistent with the negative NPV.`;
+
+  const paybackSentence =
+    payback === null
+      ? " The cumulative cash flow never turns positive within the modeled periods, so there's no payback period to report."
+      : ` The initial investment is recovered in ${payback.toFixed(1)} years.`;
+
+  return npvSentence + irrSentence + paybackSentence;
 }

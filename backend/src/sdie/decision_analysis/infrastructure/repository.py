@@ -21,6 +21,8 @@ class SqlAlchemyDecisionAnalysisRepository(DecisionAnalysisRepository):
             tenant_id=analysis.tenant_id.value,
             title=analysis.title,
             method=analysis.method,
+            recommended_option=analysis.recommended_option or "",
+            result_data=analysis.result_data,
             created_at=analysis.created_at,
         )
         merged = await self._session.merge(orm)
@@ -34,11 +36,27 @@ class SqlAlchemyDecisionAnalysisRepository(DecisionAnalysisRepository):
         )
         result = await self._session.execute(stmt)
         row = result.scalar_one_or_none()
-        if row is None:
-            return None
+        return self._to_domain(row) if row else None
+
+    async def list_for_tenant(self, tenant_id: TenantId) -> list[DecisionAnalysis]:
+        stmt = (
+            select(DecisionAnalysisORM)
+            .where(DecisionAnalysisORM.tenant_id == tenant_id.value)
+            .order_by(DecisionAnalysisORM.created_at.desc())
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain(row) for row in result.scalars().all()]
+
+    @staticmethod
+    def _to_domain(row: DecisionAnalysisORM) -> DecisionAnalysis:
         analysis = DecisionAnalysis(
-            id=row.id, tenant_id=TenantId(row.tenant_id), title=row.title,
-            method=row.method, created_at=row.created_at,
+            id=row.id,
+            tenant_id=TenantId(row.tenant_id),
+            title=row.title,
+            method=row.method,
+            created_at=row.created_at,
+            recommended_option=row.recommended_option,
+            result_data=row.result_data,
         )
         analysis.__post_init__()
         return analysis

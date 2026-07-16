@@ -124,3 +124,12 @@ export interface EvaluateDecisionTreeResponse {
   expected_value_with_perfect_info: number;
   expected_value_of_perfect_information: number;
 }
+
+export interface AnalysisSummary {
+  analysis_id: string;
+  title: string;
+  method: string;
+  recommended_option: string;
+  result_data: Record<string, unknown>;
+  created_at: string;
+}

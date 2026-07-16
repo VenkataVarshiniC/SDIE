@@ -4,6 +4,9 @@ logic itself — that lives in domain/services.py so it stays unit-testable
 without a database."""
 from __future__ import annotations
 
+from decimal import Decimal
+from uuid import UUID
+
 from sdie.financial_modeling.application.dto import (
     CashFlowInput,
     CashFlowModelResult,
@@ -54,7 +57,7 @@ class CreateCashFlowModelUseCase:
         irr = internal_rate_of_return(cash_flows)
         payback = payback_period(cash_flows)
 
-        model.record_scenario_evaluation("base", npv, irr)
+        model.attach_evaluation(cash_flows=cash_flows, npv=npv, irr=irr, payback_period=payback)
         await self._repository.save(model)
         await self._event_bus.publish_all(model.pull_pending_events())
 
@@ -67,6 +70,36 @@ class CreateCashFlowModelUseCase:
             irr_percent=irr.as_percent() if irr else None,
             payback_period=payback,
         )
+
+
+class ListCashFlowModelsUseCase:
+    def __init__(self, repository: CashFlowModelRepository):
+        self._repository = repository
+
+    async def execute(self, tenant_id: TenantId) -> list[CashFlowModelResult]:
+        models = await self._repository.list_for_tenant(tenant_id)
+        return [_to_result(m) for m in models]
+
+
+class GetCashFlowModelUseCase:
+    def __init__(self, repository: CashFlowModelRepository):
+        self._repository = repository
+
+    async def execute(self, model_id: UUID, tenant_id: TenantId) -> CashFlowModelResult | None:
+        model = await self._repository.get(model_id, tenant_id)
+        return _to_result(model) if model else None
+
+
+def _to_result(model: CashFlowModel) -> CashFlowModelResult:
+    return CashFlowModelResult(
+        model_id=model.id,
+        project_name=model.project_name,
+        currency=model.currency,
+        discount_rate_percent=model.discount_rate.as_percent(),
+        npv=model.npv.amount if model.npv else Decimal("0"),
+        irr_percent=model.irr.as_percent() if model.irr else None,
+        payback_period=model.payback_period,
+    )
 
 
 class EvaluateScenariosUseCase:

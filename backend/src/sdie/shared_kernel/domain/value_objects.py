@@ -31,36 +31,36 @@ class Money:
         if len(self.currency) != 3 or not self.currency.isalpha():
             raise InvalidValueObjectError(f"Invalid ISO-4217 currency code: {self.currency!r}")
 
-    def _check_currency(self, other: "Money") -> None:
+    def _check_currency(self, other: Money) -> None:
         if self.currency != other.currency:
             raise InvalidValueObjectError(
                 f"Cannot combine {self.currency} and {other.currency} without explicit FX conversion"
             )
 
-    def __add__(self, other: "Money") -> "Money":
+    def __add__(self, other: Money) -> Money:
         self._check_currency(other)
         return Money(self.amount + other.amount, self.currency)
 
-    def __sub__(self, other: "Money") -> "Money":
+    def __sub__(self, other: Money) -> Money:
         self._check_currency(other)
         return Money(self.amount - other.amount, self.currency)
 
-    def __mul__(self, factor: Decimal | float | int) -> "Money":
+    def __mul__(self, factor: Decimal | float | int) -> Money:
         return Money(self.amount * Decimal(str(factor)), self.currency)
 
-    def __neg__(self) -> "Money":
+    def __neg__(self) -> Money:
         return Money(-self.amount, self.currency)
 
-    def __lt__(self, other: "Money") -> bool:
+    def __lt__(self, other: Money) -> bool:
         self._check_currency(other)
         return self.amount < other.amount
 
-    def __le__(self, other: "Money") -> bool:
+    def __le__(self, other: Money) -> bool:
         self._check_currency(other)
         return self.amount <= other.amount
 
     @classmethod
-    def zero(cls, currency: str = "USD") -> "Money":
+    def zero(cls, currency: str = "USD") -> Money:
         return cls(Decimal("0"), currency)
 
     def is_negative(self) -> bool:
@@ -78,7 +78,7 @@ class Percentage:
             object.__setattr__(self, "fraction", Decimal(str(self.fraction)))
 
     @classmethod
-    def from_percent(cls, value: float | Decimal) -> "Percentage":
+    def from_percent(cls, value: float | Decimal) -> Percentage:
         return cls(Decimal(str(value)) / Decimal("100"))
 
     def as_percent(self) -> Decimal:

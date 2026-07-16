@@ -8,13 +8,17 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from sdie.config import get_settings
-from sdie.shared_kernel.infrastructure.database import Base
+from sdie.decision_analysis.infrastructure import orm as _decision_analysis_orm  # noqa: F401
+from sdie.evidence_research.infrastructure import orm as _evidence_research_orm  # noqa: F401
 
 # Import every context's ORM module here so its tables register on
 # Base.metadata before autogenerate/upgrade runs. Add a line per new
 # bounded context as it gets a persistence layer.
 from sdie.financial_modeling.infrastructure import orm as _financial_modeling_orm  # noqa: F401
-from sdie.decision_analysis.infrastructure import orm as _decision_analysis_orm  # noqa: F401
+from sdie.recommendation_synthesis.infrastructure import (
+    orm as _recommendation_synthesis_orm,  # noqa: F401
+)
+from sdie.shared_kernel.infrastructure.database import Base
 
 config = context.config
 if config.config_file_name is not None:

@@ -13,3 +13,6 @@ class DecisionAnalysisRepository(ABC):
 
     @abstractmethod
     async def get(self, analysis_id: UUID, tenant_id: TenantId) -> DecisionAnalysis | None: ...
+
+    @abstractmethod
+    async def list_for_tenant(self, tenant_id: TenantId) -> list[DecisionAnalysis]: ...

@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    # GitHub-hosted runners provide Docker for service containers regardless
+    # of whether contributors have Docker locally — this is orthogonal to
+    # the project's "no Docker required for local dev" design.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sdie
+          POSTGRES_PASSWORD: sdie
+          POSTGRES_DB: sdie
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      SDIE_DATABASE_URL: postgresql+asyncpg://sdie:sdie@localhost:5432/sdie
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Type check (mypy)
+        run: mypy src/sdie
+        continue-on-error: true # tightening strict-mode gaps is tracked separately; don't block CI on it yet
+
+      - name: Run migrations
+        run: python -m alembic upgrade head
+
+      - name: Unit tests
+        run: python -m pytest tests/unit -v
+
+      - name: Integration tests
+        run: python -m pytest tests/integration -v
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npx next build

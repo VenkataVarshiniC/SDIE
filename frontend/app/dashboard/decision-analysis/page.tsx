@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Panel } from "@/components/ui/panel";
 import { Button, Field, TextInput } from "@/components/ui/field";
 import { decisionAnalysisApi, ApiError } from "@/lib/api-client";
-import type { RankOptionsResponse } from "@/lib/types";
+import type { AnalysisSummary, RankOptionsResponse } from "@/lib/types";
 
 interface CriterionRow {
   name: string;
@@ -37,6 +39,16 @@ export default function DecisionAnalysisPage() {
   const [result, setResult] = useState<RankOptionsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [recentAnalyses, setRecentAnalyses] = useState<AnalysisSummary[]>([]);
+
+  useEffect(() => {
+    decisionAnalysisApi
+      .listAnalyses()
+      .then(setRecentAnalyses)
+      .catch(() => {
+        /* history is a nice-to-have; a failed fetch here shouldn't block the page */
+      });
+  }, []);
 
   const weightSum = criteria.reduce((s, c) => s + (Number(c.weight) || 0), 0);
 
@@ -69,6 +81,7 @@ export default function DecisionAnalysisPage() {
         })),
       });
       setResult(res);
+      decisionAnalysisApi.listAnalyses().then(setRecentAnalyses).catch(() => {});
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
     } finally {
@@ -82,6 +95,17 @@ export default function DecisionAnalysisPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        href="/"
+        className="group inline-flex items-center gap-2 text-sm text-muted hover:text-parchment transition-colors w-fit"
+      >
+        <ArrowLeft
+          size={16}
+          className="transition-transform duration-200 group-hover:-translate-x-1"
+        />
+        Back to overview
+      </Link>
+
       <div>
         <span className="text-[11px] uppercase tracking-wider text-ledger">Quant core / 02</span>
         <h1 className="font-display text-[28px] mt-1">Decision analysis</h1>
@@ -180,12 +204,56 @@ export default function DecisionAnalysisPage() {
                 means that option was the best on that criterion among those compared, not an
                 absolute benchmark.
               </div>
+
+              <p className="text-sm text-muted leading-relaxed border-t border-ink-border pt-3">
+                {describeRanking(result)}
+              </p>
             </div>
           ) : (
             <p className="text-muted text-sm">Rank options to see the recommendation.</p>
           )}
         </Panel>
       </div>
+
+      <Panel eyebrow="History" title="Recent analyses">
+        {recentAnalyses.length > 0 ? (
+          <div className="flex flex-col divide-y divide-ink-border">
+            {recentAnalyses.map((a) => (
+              <div key={a.analysis_id} className="py-3 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-parchment">{a.title}</p>
+                  <p className="text-xs text-muted">
+                    {a.method} · {new Date(a.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <span className="text-sm text-ledger font-data">{a.recommended_option}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted text-sm">No analyses yet — run a ranking above to see it here.</p>
+        )}
+      </Panel>
     </div>
   );
+}
+
+function describeRanking(result: RankOptionsResponse): string {
+  const [top, second] = result.rankings;
+  if (!top) return "";
+
+  const marginSentence = second
+    ? `It leads "${second.option}" by a weighted-score margin of ${(top.weighted_score - second.weighted_score).toFixed(2)} (on a 0–1 scale).`
+    : "It was the only option scored.";
+
+  const drivingCriteria = Object.entries(top.normalized_scores)
+    .filter(([, score]) => score >= 0.75)
+    .map(([name]) => name.replace(/_/g, " "));
+
+  const drivingSentence =
+    drivingCriteria.length > 0
+      ? ` This is driven mainly by its strength on ${drivingCriteria.join(" and ")}.`
+      : " No single criterion dominates — its lead comes from being solidly competitive across the board.";
+
+  return `"${top.option}" is the recommended option. ${marginSentence}${drivingSentence} A narrow margin is worth re-examining the criteria weights before committing; a wide one is a more robust recommendation.`;
 }

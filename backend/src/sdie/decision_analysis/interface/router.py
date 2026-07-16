@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sdie.decision_analysis.application.dto import (
@@ -15,6 +19,8 @@ from sdie.decision_analysis.application.dto import (
 )
 from sdie.decision_analysis.application.use_cases import (
     EvaluateDecisionTreeUseCase,
+    GetDecisionAnalysisUseCase,
+    ListDecisionAnalysesUseCase,
     RankOptionsUseCase,
     RunMonteCarloUseCase,
 )
@@ -29,11 +35,65 @@ from sdie.decision_analysis.interface.schemas import (
     RankOptionsResponse,
     RunMonteCarloRequest,
 )
+from sdie.shared_kernel.domain.value_objects import TenantId
 from sdie.shared_kernel.infrastructure.auth import Principal, get_current_principal
 from sdie.shared_kernel.infrastructure.database import get_session, set_tenant_context
 from sdie.shared_kernel.infrastructure.event_bus import get_event_bus
 
 router = APIRouter(prefix="/decision-analysis", tags=["decision-analysis"])
+
+
+class AnalysisSummarySchema(BaseModel):
+    analysis_id: UUID
+    title: str
+    method: str
+    recommended_option: str
+    result_data: dict
+    created_at: datetime
+
+
+@router.get("/analyses", response_model=list[AnalysisSummarySchema])
+async def list_analyses(
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> list[AnalysisSummarySchema]:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyDecisionAnalysisRepository(session)
+    analyses = await ListDecisionAnalysesUseCase(repository).execute(TenantId(principal.tenant_id))
+    return [
+        AnalysisSummarySchema(
+            analysis_id=a.id,
+            title=a.title,
+            method=a.method,
+            recommended_option=a.recommended_option or "",
+            result_data=a.result_data,
+            created_at=a.created_at,
+        )
+        for a in analyses
+    ]
+
+
+@router.get("/analyses/{analysis_id}", response_model=AnalysisSummarySchema)
+async def get_analysis(
+    analysis_id: UUID,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> AnalysisSummarySchema:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyDecisionAnalysisRepository(session)
+    analysis = await GetDecisionAnalysisUseCase(repository).execute(
+        analysis_id, TenantId(principal.tenant_id)
+    )
+    if analysis is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+    return AnalysisSummarySchema(
+        analysis_id=analysis.id,
+        title=analysis.title,
+        method=analysis.method,
+        recommended_option=analysis.recommended_option or "",
+        result_data=analysis.result_data,
+        created_at=analysis.created_at,
+    )
 
 
 @router.post("/mcda/rank", response_model=RankOptionsResponse, status_code=status.HTTP_201_CREATED)
@@ -63,7 +123,9 @@ async def rank_options(
     return RankOptionsResponse(
         analysis_id=result.analysis_id,
         rankings=[
-            MCDARankingSchema(option=r.option, weighted_score=r.weighted_score, normalized_scores=r.normalized_scores)
+            MCDARankingSchema(
+                option=r.option, weighted_score=r.weighted_score, normalized_scores=r.normalized_scores
+            )
             for r in result.rankings
         ],
         recommended_option=result.recommended_option,

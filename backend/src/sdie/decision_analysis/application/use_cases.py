@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 import numpy as np
 
 from sdie.decision_analysis.application.dto import (
@@ -42,7 +44,17 @@ class RankOptionsUseCase:
         rankings = rank_options_mcda(criteria, options)
 
         analysis = DecisionAnalysis.create(tenant_id=tenant_id, title=command.title, method="mcda_weighted_sum")
-        analysis.complete(rankings[0].option)
+        result_data = {
+            "rankings": [
+                {
+                    "option": r.option,
+                    "weighted_score": r.weighted_score,
+                    "normalized_scores": r.normalized_scores,
+                }
+                for r in rankings
+            ]
+        }
+        analysis.complete(rankings[0].option, result_data)
         await self._repository.save(analysis)
         await self._event_bus.publish_all(analysis.pull_pending_events())
 
@@ -74,7 +86,12 @@ class EvaluateDecisionTreeUseCase:
         result = evaluate_decision_tree(options)
 
         analysis = DecisionAnalysis.create(tenant_id=tenant_id, title=command.title, method="decision_tree_emv")
-        analysis.complete(result.recommended_option)
+        result_data = {
+            "ranked_options": [[name, emv] for name, emv in result.ranked_options],
+            "expected_value_with_perfect_info": result.expected_value_with_perfect_info,
+            "expected_value_of_perfect_information": result.expected_value_of_perfect_information,
+        }
+        analysis.complete(result.recommended_option, result_data)
         await self._repository.save(analysis)
         await self._event_bus.publish_all(analysis.pull_pending_events())
 
@@ -120,7 +137,17 @@ class RunMonteCarloUseCase:
         )
 
         analysis = DecisionAnalysis.create(tenant_id=tenant_id, title=command.title, method="monte_carlo")
-        analysis.complete(f"mean_payoff={result.mean:.2f}")
+        result_data = {
+            "mean": result.mean,
+            "std_dev": result.std_dev,
+            "percentile_5": result.percentile_5,
+            "percentile_50": result.percentile_50,
+            "percentile_95": result.percentile_95,
+            "probability_negative": result.probability_negative,
+            "seed": result.seed,
+            "iterations": result.iterations,
+        }
+        analysis.complete(f"mean_payoff={result.mean:.2f}", result_data)
         await self._repository.save(analysis)
         await self._event_bus.publish_all(analysis.pull_pending_events())
 
@@ -135,3 +162,19 @@ class RunMonteCarloUseCase:
             percentile_95=result.percentile_95,
             probability_negative=result.probability_negative,
         )
+
+
+class ListDecisionAnalysesUseCase:
+    def __init__(self, repository: DecisionAnalysisRepository):
+        self._repository = repository
+
+    async def execute(self, tenant_id: TenantId) -> list[DecisionAnalysis]:
+        return await self._repository.list_for_tenant(tenant_id)
+
+
+class GetDecisionAnalysisUseCase:
+    def __init__(self, repository: DecisionAnalysisRepository):
+        self._repository = repository
+
+    async def execute(self, analysis_id: UUID, tenant_id: TenantId) -> DecisionAnalysis | None:
+        return await self._repository.get(analysis_id, tenant_id)

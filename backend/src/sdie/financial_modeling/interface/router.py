@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,8 @@ from sdie.financial_modeling.application.dto import (
 from sdie.financial_modeling.application.use_cases import (
     CreateCashFlowModelUseCase,
     EvaluateScenariosUseCase,
+    GetCashFlowModelUseCase,
+    ListCashFlowModelsUseCase,
     RunSensitivityAnalysisUseCase,
 )
 from sdie.financial_modeling.domain.entities import FinancialModelingError
@@ -26,6 +30,7 @@ from sdie.financial_modeling.interface.schemas import (
     SensitivityRequest,
     SensitivityResponse,
 )
+from sdie.shared_kernel.domain.value_objects import TenantId
 from sdie.shared_kernel.infrastructure.auth import Principal, get_current_principal
 from sdie.shared_kernel.infrastructure.database import get_session, set_tenant_context
 from sdie.shared_kernel.infrastructure.event_bus import get_event_bus
@@ -58,6 +63,47 @@ async def create_cash_flow_model(
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
+    return CashFlowModelResponse(
+        model_id=result.model_id,
+        project_name=result.project_name,
+        currency=result.currency,
+        discount_rate_percent=result.discount_rate_percent,
+        npv=result.npv,
+        irr_percent=result.irr_percent,
+        payback_period=result.payback_period,
+    )
+
+
+@router.get("/cash-flow-models", response_model=list[CashFlowModelResponse])
+async def list_cash_flow_models(
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> list[CashFlowModelResponse]:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyCashFlowModelRepository(session)
+    use_case = ListCashFlowModelsUseCase(repository)
+
+    results = await use_case.execute(TenantId(principal.tenant_id))
+    return [_to_response(r) for r in results]
+
+
+@router.get("/cash-flow-models/{model_id}", response_model=CashFlowModelResponse)
+async def get_cash_flow_model(
+    model_id: UUID,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> CashFlowModelResponse:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyCashFlowModelRepository(session)
+    use_case = GetCashFlowModelUseCase(repository)
+
+    result = await use_case.execute(model_id, TenantId(principal.tenant_id))
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cash flow model not found")
+    return _to_response(result)
+
+
+def _to_response(result) -> CashFlowModelResponse:
     return CashFlowModelResponse(
         model_id=result.model_id,
         project_name=result.project_name,

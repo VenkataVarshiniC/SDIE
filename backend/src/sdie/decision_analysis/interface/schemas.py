@@ -22,7 +22,7 @@ class RankOptionsRequest(BaseModel):
     options: list[MCDAOptionSchema] = Field(min_length=2)
 
     @model_validator(mode="after")
-    def weights_sum_to_one(self) -> "RankOptionsRequest":
+    def weights_sum_to_one(self) -> RankOptionsRequest:
         total = sum(c.weight for c in self.criteria)
         if abs(total - 1.0) > 1e-6:
             raise ValueError(f"criteria weights must sum to 1.0, got {total}")

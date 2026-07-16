@@ -162,8 +162,10 @@ def rank_options_mcda(
             raw = opt.scores[criterion.name]
             if span == 0:
                 norm = 1.0
+            elif criterion.higher_is_better:
+                norm = (raw - lo) / span
             else:
-                norm = (raw - lo) / span if criterion.higher_is_better else (hi - raw) / span
+                norm = (hi - raw) / span
             normalized[opt.name][criterion.name] = norm
 
     rankings = []
