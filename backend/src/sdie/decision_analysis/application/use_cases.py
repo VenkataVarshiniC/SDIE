@@ -214,3 +214,11 @@ class GetDecisionAnalysisUseCase:
 
     async def execute(self, analysis_id: UUID, tenant_id: TenantId) -> DecisionAnalysis | None:
         return await self._repository.get(analysis_id, tenant_id)
+
+
+class ClearAnalysisHistoryUseCase:
+    def __init__(self, repository: DecisionAnalysisRepository):
+        self._repository = repository
+
+    async def execute(self, tenant_id: TenantId) -> int:
+        return await self._repository.delete_all_for_tenant(tenant_id)

@@ -16,3 +16,10 @@ class DecisionAnalysisRepository(ABC):
 
     @abstractmethod
     async def list_for_tenant(self, tenant_id: TenantId) -> list[DecisionAnalysis]: ...
+
+    @abstractmethod
+    async def delete_all_for_tenant(self, tenant_id: TenantId) -> int:
+        """Deletes every stored analysis for this tenant. Returns the
+        number of rows deleted, so callers can report what happened rather
+        than assuming."""
+        ...

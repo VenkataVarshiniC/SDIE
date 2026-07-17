@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -40,8 +41,11 @@ export default function DecisionAnalysisPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [recentAnalyses, setRecentAnalyses] = useState<AnalysisSummary[]>([]);
+  const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
+  const [clearingHistory, setClearingHistory] = useState(false);
+  const pathname = usePathname();
 
-  useEffect(() => {
+  const refreshHistory = useCallback(() => {
     decisionAnalysisApi
       .listAnalyses()
       .then(setRecentAnalyses)
@@ -49,6 +53,20 @@ export default function DecisionAnalysisPage() {
         /* history is a nice-to-have; a failed fetch here shouldn't block the page */
       });
   }, []);
+
+  // Re-fetch every time this route is (re)entered — Next.js can keep a
+  // client component's state alive across soft navigations, so a plain
+  // mount-only effect can go stale if you navigate away and back.
+  useEffect(() => {
+    refreshHistory();
+  }, [pathname, refreshHistory]);
+
+  // Also catch the case where the tab was just backgrounded and someone
+  // else (or another tab) ran an analysis in the meantime.
+  useEffect(() => {
+    window.addEventListener("focus", refreshHistory);
+    return () => window.removeEventListener("focus", refreshHistory);
+  }, [refreshHistory]);
 
   const weightSum = criteria.reduce((s, c) => s + (Number(c.weight) || 0), 0);
 
@@ -81,11 +99,27 @@ export default function DecisionAnalysisPage() {
         })),
       });
       setResult(res);
-      decisionAnalysisApi.listAnalyses().then(setRecentAnalyses).catch(() => {});
+      refreshHistory();
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleClearHistory() {
+    const confirmed = window.confirm("Are you sure you want to delete all analysis history?");
+    if (!confirmed) return;
+
+    setClearingHistory(true);
+    setClearHistoryError(null);
+    try {
+      await decisionAnalysisApi.clearHistory();
+      setRecentAnalyses([]);
+    } catch (e) {
+      setClearHistoryError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
+    } finally {
+      setClearingHistory(false);
     }
   }
 
@@ -215,7 +249,23 @@ export default function DecisionAnalysisPage() {
         </Panel>
       </div>
 
-      <Panel eyebrow="History" title="Recent analyses">
+      <Panel
+        eyebrow="History"
+        title="Recent analyses"
+        headerAction={
+          <Button
+            variant="ghost"
+            onClick={handleClearHistory}
+            disabled={clearingHistory || recentAnalyses.length === 0}
+            type="button"
+          >
+            {clearingHistory ? "Clearing…" : "Clear History"}
+          </Button>
+        }
+      >
+        {clearHistoryError && (
+          <p className="text-signal-down text-sm mb-3">{clearHistoryError}</p>
+        )}
         {recentAnalyses.length > 0 ? (
           <div className="flex flex-col divide-y divide-ink-border">
             {recentAnalyses.map((a) => (

@@ -18,6 +18,7 @@ from sdie.decision_analysis.application.dto import (
     RunMonteCarloCommand,
 )
 from sdie.decision_analysis.application.use_cases import (
+    ClearAnalysisHistoryUseCase,
     EvaluateDecisionTreeUseCase,
     GetDecisionAnalysisUseCase,
     ListDecisionAnalysesUseCase,
@@ -51,6 +52,24 @@ class AnalysisSummarySchema(BaseModel):
     recommended_option: str
     result_data: dict
     created_at: datetime
+
+
+class ClearHistoryResponse(BaseModel):
+    deleted_count: int
+
+
+@router.delete("/analyses", response_model=ClearHistoryResponse)
+async def clear_history(
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> ClearHistoryResponse:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyDecisionAnalysisRepository(session)
+    deleted_count = await ClearAnalysisHistoryUseCase(repository).execute(
+        TenantId(principal.tenant_id)
+    )
+    await session.commit()
+    return ClearHistoryResponse(deleted_count=deleted_count)
 
 
 @router.get("/analyses", response_model=list[AnalysisSummarySchema])
