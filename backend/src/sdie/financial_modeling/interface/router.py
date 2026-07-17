@@ -54,6 +54,7 @@ async def create_cash_flow_model(
         currency=request.currency,
         discount_rate_percent=request.discount_rate_percent,
         cash_flows=[CashFlowInput(cf.period, cf.amount) for cf in request.cash_flows],
+        industry=request.industry,
     )
 
     try:
@@ -63,15 +64,7 @@ async def create_cash_flow_model(
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
-    return CashFlowModelResponse(
-        model_id=result.model_id,
-        project_name=result.project_name,
-        currency=result.currency,
-        discount_rate_percent=result.discount_rate_percent,
-        npv=result.npv,
-        irr_percent=result.irr_percent,
-        payback_period=result.payback_period,
-    )
+    return _to_response(result)
 
 
 @router.get("/cash-flow-models", response_model=list[CashFlowModelResponse])
@@ -112,6 +105,7 @@ def _to_response(result) -> CashFlowModelResponse:
         npv=result.npv,
         irr_percent=result.irr_percent,
         payback_period=result.payback_period,
+        flags=result.flags,
     )
 
 

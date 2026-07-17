@@ -15,6 +15,7 @@ from sdie.evidence_research.infrastructure import orm as _evidence_research_orm 
 # Base.metadata before autogenerate/upgrade runs. Add a line per new
 # bounded context as it gets a persistence layer.
 from sdie.financial_modeling.infrastructure import orm as _financial_modeling_orm  # noqa: F401
+from sdie.problem_framing.infrastructure import orm as _problem_framing_orm  # noqa: F401
 from sdie.recommendation_synthesis.infrastructure import (
     orm as _recommendation_synthesis_orm,  # noqa: F401
 )

@@ -579,9 +579,6 @@ video {
 .grid-cols-\[1fr_90px\] {
   grid-template-columns: 1fr 90px;
 }
-.grid-cols-\[60px_1fr\] {
-  grid-template-columns: 60px 1fr;
-}
 .flex-col {
   flex-direction: column;
 }
@@ -866,10 +863,6 @@ body {
 }
 
 @media (min-width: 1024px) {
-
-  .lg\:grid-cols-\[380px_1fr\] {
-    grid-template-columns: 380px 1fr;
-  }
 
   .lg\:grid-cols-\[420px_1fr\] {
     grid-template-columns: 420px 1fr;

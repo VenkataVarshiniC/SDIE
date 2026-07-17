@@ -30,6 +30,7 @@ class SqlAlchemyCashFlowModelRepository(CashFlowModelRepository):
             npv=model.npv.amount if model.npv else None,
             irr_percent=model.irr.as_percent() if model.irr else None,
             payback_period=model.payback_period,
+            industry=model.industry,
         )
         merged = await self._session.merge(orm)
         self._session.add(merged)
@@ -75,6 +76,7 @@ class SqlAlchemyCashFlowModelRepository(CashFlowModelRepository):
             payback_period=Decimal(str(row.payback_period))
             if row.payback_period is not None
             else None,
+            industry=row.industry,
         )
         model.__post_init__()
         return model

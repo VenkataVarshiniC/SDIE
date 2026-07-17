@@ -62,6 +62,7 @@ class CashFlowModel(AggregateRoot):
     npv: Money | None = None
     irr: Percentage | None = None
     payback_period: Decimal | None = None
+    industry: str | None = None
 
     def __post_init__(self) -> None:
         AggregateRoot.__init__(self)
@@ -74,6 +75,7 @@ class CashFlowModel(AggregateRoot):
         project_name: str,
         currency: str = "USD",
         discount_rate: Percentage,
+        industry: str | None = None,
     ) -> CashFlowModel:
         if not project_name.strip():
             raise FinancialModelingError("project_name must not be empty")
@@ -86,6 +88,7 @@ class CashFlowModel(AggregateRoot):
             project_name=project_name,
             currency=currency,
             discount_rate=discount_rate,
+            industry=industry,
         )
         model.raise_event(
             CashFlowModelCreated(

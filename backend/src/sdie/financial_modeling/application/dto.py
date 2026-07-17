@@ -21,6 +21,7 @@ class CreateCashFlowModelCommand:
     currency: str
     discount_rate_percent: Decimal
     cash_flows: list[CashFlowInput]
+    industry: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +33,7 @@ class CashFlowModelResult:
     npv: Decimal
     irr_percent: Decimal | None
     payback_period: Decimal | None
+    flags: list[str]
 
 
 @dataclass(frozen=True, slots=True)

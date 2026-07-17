@@ -12,9 +12,10 @@ from sdie.decision_analysis.application.dto import (
     RankOptionsCommand,
     RankOptionsResult,
     RunMonteCarloCommand,
+    WeightRobustnessResult,
 )
 from sdie.decision_analysis.application.ports import DecisionAnalysisRepository
-from sdie.decision_analysis.domain.entities import DecisionAnalysis
+from sdie.decision_analysis.domain.entities import DecisionAnalysis, DecisionAnalysisError
 from sdie.decision_analysis.domain.services import (
     Criterion,
     DecisionOption,
@@ -22,7 +23,11 @@ from sdie.decision_analysis.domain.services import (
     DistributionType,
     MCDAOption,
     Outcome,
+    decision_tree_evpi_flags,
+    decision_tree_probability_breakeven,
     evaluate_decision_tree,
+    mcda_concentration_flags,
+    mcda_weight_robustness,
     rank_options_mcda,
     run_monte_carlo,
 )
@@ -58,12 +63,25 @@ class RankOptionsUseCase:
         await self._repository.save(analysis)
         await self._event_bus.publish_all(analysis.pull_pending_events())
 
+        robustness = mcda_weight_robustness(criteria, options)
+        flags = mcda_concentration_flags(criteria)
+
         return RankOptionsResult(
             analysis_id=analysis.id,
             rankings=[
                 MCDARankingResult(r.option, r.weighted_score, r.normalized_scores) for r in rankings
             ],
             recommended_option=rankings[0].option,
+            weight_robustness=[
+                WeightRobustnessResult(
+                    criterion=r.criterion,
+                    current_weight=r.current_weight,
+                    flips_at_weight=r.flips_at_weight,
+                    direction=r.direction,
+                )
+                for r in robustness
+            ],
+            flags=flags,
         )
 
 
@@ -95,12 +113,30 @@ class EvaluateDecisionTreeUseCase:
         await self._repository.save(analysis)
         await self._event_bus.publish_all(analysis.pull_pending_events())
 
+        flags = decision_tree_evpi_flags(result)
+
+        probability_breakeven = None
+        if len(options) == 2 and len(options[0].outcomes) == 2 and len(options[1].outcomes) == 2:
+            shared_outcome = options[0].outcomes[0].name
+            try:
+                breakeven = decision_tree_probability_breakeven(options, shared_outcome)
+                probability_breakeven = {
+                    "outcome_name": breakeven.outcome_name,
+                    "option_a": breakeven.option_a,
+                    "option_b": breakeven.option_b,
+                    "breakeven_probability": breakeven.breakeven_probability,
+                }
+            except DecisionAnalysisError:
+                pass  # outcomes weren't shared between the two options — no closed-form breakeven applies
+
         return EvaluateDecisionTreeResult(
             analysis_id=analysis.id,
             ranked_options=result.ranked_options,
             recommended_option=result.recommended_option,
             expected_value_with_perfect_info=result.expected_value_with_perfect_info,
             expected_value_of_perfect_information=result.expected_value_of_perfect_information,
+            flags=flags,
+            probability_breakeven=probability_breakeven,
         )
 
 

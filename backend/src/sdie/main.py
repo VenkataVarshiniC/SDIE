@@ -9,6 +9,7 @@ from sdie.config import get_settings
 from sdie.decision_analysis.interface.router import router as decision_analysis_router
 from sdie.evidence_research.interface.router import router as evidence_research_router
 from sdie.financial_modeling.interface.router import router as financial_modeling_router
+from sdie.problem_framing.interface.router import router as problem_framing_router
 from sdie.recommendation_synthesis.interface.router import router as recommendation_synthesis_router
 from sdie.shared_kernel.interface.error_handling import register_exception_handlers
 
@@ -40,6 +41,7 @@ app.include_router(financial_modeling_router, prefix="/api/v1")
 app.include_router(decision_analysis_router, prefix="/api/v1")
 app.include_router(evidence_research_router, prefix="/api/v1")
 app.include_router(recommendation_synthesis_router, prefix="/api/v1")
+app.include_router(problem_framing_router, prefix="/api/v1")
 
 
 @app.get("/health")

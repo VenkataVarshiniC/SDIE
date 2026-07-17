@@ -47,3 +47,8 @@ class OverrideRationaleRequest(BaseModel):
     overridden_by: str = Field(min_length=1, max_length=255)
     reason: str = Field(min_length=1, max_length=2000)
     new_recommended_option: str = Field(min_length=1, max_length=255)
+
+
+class NarrativeResponse(BaseModel):
+    rationale_id: UUID
+    narrative: str

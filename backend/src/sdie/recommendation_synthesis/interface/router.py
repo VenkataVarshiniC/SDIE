@@ -12,6 +12,7 @@ from sdie.recommendation_synthesis.application.dto import (
 )
 from sdie.recommendation_synthesis.application.use_cases import (
     CreateRationaleUseCase,
+    GenerateNarrativeUseCase,
     GetRationaleUseCase,
     ListRationalesUseCase,
     OverrideRationaleUseCase,
@@ -23,14 +24,17 @@ from sdie.recommendation_synthesis.infrastructure.repository import (
 from sdie.recommendation_synthesis.interface.schemas import (
     CreateRationaleRequest,
     EvidenceCitationSchema,
+    NarrativeResponse,
     OverrideRationaleRequest,
     OverrideSchema,
     RationaleResponse,
 )
+from sdie.shared_kernel.application.ports import LLMError, LLMPort
 from sdie.shared_kernel.domain.value_objects import TenantId
 from sdie.shared_kernel.infrastructure.auth import Principal, get_current_principal
 from sdie.shared_kernel.infrastructure.database import get_session, set_tenant_context
 from sdie.shared_kernel.infrastructure.event_bus import get_event_bus
+from sdie.shared_kernel.infrastructure.llm.provider import get_llm_client
 
 router = APIRouter(prefix="/recommendation-synthesis", tags=["recommendation-synthesis"])
 
@@ -158,3 +162,24 @@ async def override_rationale(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     return _to_response(result)
+
+
+@router.post("/rationales/{rationale_id}/narrative", response_model=NarrativeResponse)
+async def generate_narrative(
+    rationale_id: UUID,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+    llm: LLMPort = Depends(get_llm_client),
+) -> NarrativeResponse:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyDecisionRationaleRepository(session)
+    use_case = GenerateNarrativeUseCase(repository, llm)
+
+    try:
+        narrative = await use_case.execute(rationale_id, TenantId(principal.tenant_id))
+    except RecommendationSynthesisError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except LLMError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+    return NarrativeResponse(rationale_id=rationale_id, narrative=narrative)

@@ -13,10 +13,24 @@ import uuid
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
+from sdie.shared_kernel.application.ports import LLMError
+
 logger = logging.getLogger("sdie.errors")
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(LLMError)
+    async def llm_error_handler(request: Request, exc: LLMError) -> JSONResponse:
+        # LLMError can be raised either inside a route body or inside a
+        # Depends()-resolved dependency (e.g. get_llm_client() when no API
+        # key is configured) — dependency-resolution errors happen before
+        # the route function's own try/except ever runs, so a dedicated
+        # handler here is the only place that reliably catches both.
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": str(exc)},
+        )
+
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         trace_id = str(uuid.uuid4())

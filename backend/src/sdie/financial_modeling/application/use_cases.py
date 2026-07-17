@@ -21,6 +21,7 @@ from sdie.financial_modeling.application.ports import CashFlowModelRepository
 from sdie.financial_modeling.domain.entities import CashFlow, CashFlowModel
 from sdie.financial_modeling.domain.services import (
     ScenarioDefinition,
+    evaluate_assumption_flags,
     evaluate_scenarios,
     internal_rate_of_return,
     net_present_value,
@@ -50,6 +51,7 @@ class CreateCashFlowModelUseCase:
             project_name=command.project_name,
             currency=command.currency,
             discount_rate=discount_rate,
+            industry=command.industry,
         )
 
         cash_flows = _to_domain_cash_flows(command.cash_flows, command.currency)
@@ -61,6 +63,10 @@ class CreateCashFlowModelUseCase:
         await self._repository.save(model)
         await self._event_bus.publish_all(model.pull_pending_events())
 
+        flags = evaluate_assumption_flags(
+            discount_rate=discount_rate, cash_flows=cash_flows, irr=irr, industry=command.industry
+        )
+
         return CashFlowModelResult(
             model_id=model.id,
             project_name=model.project_name,
@@ -69,6 +75,7 @@ class CreateCashFlowModelUseCase:
             npv=npv.amount,
             irr_percent=irr.as_percent() if irr else None,
             payback_period=payback,
+            flags=flags,
         )
 
 
@@ -91,6 +98,16 @@ class GetCashFlowModelUseCase:
 
 
 def _to_result(model: CashFlowModel) -> CashFlowModelResult:
+    flags = (
+        evaluate_assumption_flags(
+            discount_rate=model.discount_rate,
+            cash_flows=model.cash_flows,
+            irr=model.irr,
+            industry=model.industry,
+        )
+        if model.cash_flows
+        else []
+    )
     return CashFlowModelResult(
         model_id=model.id,
         project_name=model.project_name,
@@ -99,6 +116,7 @@ def _to_result(model: CashFlowModel) -> CashFlowModelResult:
         npv=model.npv.amount if model.npv else Decimal("0"),
         irr_percent=model.irr.as_percent() if model.irr else None,
         payback_period=model.payback_period,
+        flags=flags,
     )
 
 

@@ -209,3 +209,57 @@ def probability_weighted_npv(results: list[ScenarioResult]) -> Money:
     currency = weighted[0].npv.currency
     total = sum((r.npv.amount * r.probability.fraction for r in weighted), Decimal("0"))
     return Money(total, currency)
+
+
+# ---------------------------------------------------------------------------
+# Red flags — sanity checks against industry benchmarks. These surface
+# alongside a valuation, they don't block it: the model doesn't know
+# enough about your specific deal to override your judgment, but it can
+# tell you when an assumption sits outside where similar deals usually
+# land.
+# ---------------------------------------------------------------------------
+
+
+def evaluate_assumption_flags(
+    *,
+    discount_rate: Percentage,
+    cash_flows: list[CashFlow],
+    irr: Percentage | None,
+    industry: str | None = None,
+) -> list[str]:
+    from sdie.financial_modeling.domain.benchmarks import get_benchmark
+
+    benchmark = get_benchmark(industry)
+    flags: list[str] = []
+    discount_pct = discount_rate.as_percent()
+
+    if discount_pct < benchmark.typical_wacc_low:
+        flags.append(
+            f"The {discount_pct:.1f}% discount rate is below the typical {benchmark.industry} "
+            f"range ({benchmark.typical_wacc_low:.0f}\u2013{benchmark.typical_wacc_high:.0f}%). "
+            "A discount rate that's too low overstates NPV — confirm the cost of capital used here."
+        )
+    elif discount_pct > benchmark.typical_wacc_high:
+        flags.append(
+            f"The {discount_pct:.1f}% discount rate is above the typical {benchmark.industry} "
+            f"range ({benchmark.typical_wacc_low:.0f}\u2013{benchmark.typical_wacc_high:.0f}%). "
+            "Confirm this reflects genuinely higher project risk, not an overly conservative default."
+        )
+
+    if irr is not None:
+        irr_pct = irr.as_percent()
+        if irr_pct > benchmark.typical_irr_hurdle * 2:
+            flags.append(
+                f"The {irr_pct:.1f}% IRR is more than double the typical {benchmark.industry} hurdle "
+                f"rate (~{benchmark.typical_irr_hurdle:.0f}%). Unusually high IRRs are often a sign of "
+                "an optimistic revenue ramp or an understated cost base — worth a second look."
+            )
+
+    non_initial_flows = [cf for cf in cash_flows if cf.period > 0]
+    if non_initial_flows and all(cf.amount.is_negative() for cf in non_initial_flows):
+        flags.append(
+            "Every period after the initial investment is still cash-negative — this model has no "
+            "point at which the project generates positive cash flow within the modeled horizon."
+        )
+
+    return flags

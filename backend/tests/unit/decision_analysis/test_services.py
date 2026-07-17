@@ -86,6 +86,88 @@ class TestBayesianUpdate:
             bayesian_update({"a": 0.5, "b": 0.4}, {"a": 0.5, "b": 0.5})
 
 
+class TestMCDAWeightRobustness:
+    def test_flip_point_matches_analytical_solution(self):
+        # From TestMCDA.test_ranks_options_by_weighted_score: at cost weight
+        # 0.6 vendor_a wins 0.6-0.4. Score_a(w_cost) = w_cost,
+        # Score_b(w_cost) = 1 - w_cost (worked out by hand from the
+        # normalized scores in that test). They're equal at w_cost = 0.5,
+        # so decreasing cost's weight to just below 0.5 must flip it.
+        from sdie.decision_analysis.domain.services import mcda_weight_robustness
+
+        criteria = [
+            Criterion("cost", weight=0.6, higher_is_better=False),
+            Criterion("quality", weight=0.4, higher_is_better=True),
+        ]
+        options = [
+            MCDAOption("vendor_a", {"cost": 100, "quality": 8}),
+            MCDAOption("vendor_b", {"cost": 200, "quality": 10}),
+        ]
+
+        results = mcda_weight_robustness(criteria, options, resolution=0.01)
+        cost_result = next(r for r in results if r.criterion == "cost")
+
+        assert cost_result.direction == "decrease"
+        assert cost_result.flips_at_weight == pytest.approx(0.5, abs=0.02)
+
+    def test_never_flips_returns_none(self):
+        from sdie.decision_analysis.domain.services import mcda_weight_robustness
+
+        # vendor_a dominates on every criterion — no weight redistribution changes that
+        criteria = [
+            Criterion("cost", weight=0.5, higher_is_better=False),
+            Criterion("quality", weight=0.5, higher_is_better=True),
+        ]
+        options = [
+            MCDAOption("vendor_a", {"cost": 50, "quality": 10}),
+            MCDAOption("vendor_b", {"cost": 100, "quality": 5}),
+        ]
+
+        results = mcda_weight_robustness(criteria, options, resolution=0.05)
+        assert all(r.flips_at_weight is None for r in results)
+        assert all(r.direction == "stable" for r in results)
+
+
+class TestDecisionTreeProbabilityBreakeven:
+    def test_matches_analytical_breakeven(self):
+        from sdie.decision_analysis.domain.services import decision_tree_probability_breakeven
+
+        options = [
+            DecisionOption(
+                "expand", [Outcome("high_demand", 0.5, 1000), Outcome("low_demand", 0.5, -200)]
+            ),
+            DecisionOption(
+                "status_quo", [Outcome("high_demand", 0.5, 100), Outcome("low_demand", 0.5, 100)]
+            ),
+        ]
+
+        result = decision_tree_probability_breakeven(options, "high_demand")
+
+        # hand-solved: p*1000 + (1-p)*-200 = p*100 + (1-p)*100 => p = 0.25
+        assert result.breakeven_probability == pytest.approx(0.25)
+
+    def test_rejects_more_than_two_options(self):
+        from sdie.decision_analysis.domain.services import decision_tree_probability_breakeven
+
+        options = [
+            DecisionOption("a", [Outcome("x", 0.5, 1), Outcome("y", 0.5, 2)]),
+            DecisionOption("b", [Outcome("x", 0.5, 1), Outcome("y", 0.5, 2)]),
+            DecisionOption("c", [Outcome("x", 0.5, 1), Outcome("y", 0.5, 2)]),
+        ]
+        with pytest.raises(DecisionAnalysisError):
+            decision_tree_probability_breakeven(options, "x")
+
+    def test_rejects_outcome_not_present(self):
+        from sdie.decision_analysis.domain.services import decision_tree_probability_breakeven
+
+        options = [
+            DecisionOption("a", [Outcome("x", 0.5, 1), Outcome("y", 0.5, 2)]),
+            DecisionOption("b", [Outcome("x", 0.5, 1), Outcome("y", 0.5, 2)]),
+        ]
+        with pytest.raises(DecisionAnalysisError):
+            decision_tree_probability_breakeven(options, "nonexistent")
+
+
 class TestMonteCarlo:
     def test_same_seed_is_reproducible(self):
         variables = [DistributionSpec("revenue", DistributionType.NORMAL, (1000.0, 100.0))]

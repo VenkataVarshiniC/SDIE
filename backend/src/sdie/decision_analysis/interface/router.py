@@ -34,6 +34,7 @@ from sdie.decision_analysis.interface.schemas import (
     RankOptionsRequest,
     RankOptionsResponse,
     RunMonteCarloRequest,
+    WeightRobustnessSchema,
 )
 from sdie.shared_kernel.domain.value_objects import TenantId
 from sdie.shared_kernel.infrastructure.auth import Principal, get_current_principal
@@ -129,6 +130,16 @@ async def rank_options(
             for r in result.rankings
         ],
         recommended_option=result.recommended_option,
+        weight_robustness=[
+            WeightRobustnessSchema(
+                criterion=r.criterion,
+                current_weight=r.current_weight,
+                flips_at_weight=r.flips_at_weight,
+                direction=r.direction,
+            )
+            for r in result.weight_robustness
+        ],
+        flags=result.flags,
     )
 
 
@@ -169,6 +180,8 @@ async def evaluate_decision_tree(
         recommended_option=result.recommended_option,
         expected_value_with_perfect_info=result.expected_value_with_perfect_info,
         expected_value_of_perfect_information=result.expected_value_of_perfect_information,
+        flags=result.flags,
+        probability_breakeven=result.probability_breakeven,
     )
 
 

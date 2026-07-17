@@ -34,6 +34,7 @@ class CashFlowModelORM(Base):
     npv: Mapped[float | None] = mapped_column(Numeric(20, 2), nullable=True)
     irr_percent: Mapped[float | None] = mapped_column(Numeric(20, 10), nullable=True)
     payback_period: Mapped[float | None] = mapped_column(Numeric(10, 4), nullable=True)
+    industry: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     __table_args__ = (
         {"comment": "RLS enforced — see migrations/versions/0001_initial_schema.py"},

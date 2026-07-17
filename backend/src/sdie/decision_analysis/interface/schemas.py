@@ -35,10 +35,19 @@ class MCDARankingSchema(BaseModel):
     normalized_scores: dict[str, float]
 
 
+class WeightRobustnessSchema(BaseModel):
+    criterion: str
+    current_weight: float
+    flips_at_weight: float | None
+    direction: str
+
+
 class RankOptionsResponse(BaseModel):
     analysis_id: UUID
     rankings: list[MCDARankingSchema]
     recommended_option: str
+    weight_robustness: list[WeightRobustnessSchema] = Field(default_factory=list)
+    flags: list[str] = Field(default_factory=list)
 
 
 class OutcomeSchema(BaseModel):
@@ -63,6 +72,8 @@ class EvaluateDecisionTreeResponse(BaseModel):
     recommended_option: str
     expected_value_with_perfect_info: float
     expected_value_of_perfect_information: float
+    flags: list[str] = Field(default_factory=list)
+    probability_breakeven: dict | None = None
 
 
 class DistributionSchema(BaseModel):

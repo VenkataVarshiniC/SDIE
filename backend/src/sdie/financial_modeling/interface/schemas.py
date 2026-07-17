@@ -19,6 +19,11 @@ class CreateCashFlowModelRequest(BaseModel):
     currency: str = Field(min_length=3, max_length=3, default="USD")
     discount_rate_percent: Decimal = Field(ge=0, le=100)
     cash_flows: list[CashFlowSchema] = Field(min_length=1)
+    industry: str | None = Field(
+        default=None,
+        description="e.g. 'software', 'retail', 'manufacturing', 'energy', 'healthcare' — "
+        "used only to select benchmark ranges for assumption flags, defaults to 'general'",
+    )
 
     @field_validator("currency")
     @classmethod
@@ -34,6 +39,7 @@ class CashFlowModelResponse(BaseModel):
     npv: Decimal
     irr_percent: Decimal | None
     payback_period: Decimal | None
+    flags: list[str] = Field(default_factory=list)
 
 
 class ScenarioSchema(BaseModel):

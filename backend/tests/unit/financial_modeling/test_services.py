@@ -90,6 +90,74 @@ class TestSensitivity:
         assert result.swing.amount == Decimal("400.00")
 
 
+class TestAssumptionFlags:
+    def test_flags_discount_rate_below_industry_range(self):
+        from sdie.financial_modeling.domain.services import evaluate_assumption_flags
+
+        flows = [cf(0, "-1000"), cf(1, "1100")]
+        flags = evaluate_assumption_flags(
+            discount_rate=Percentage.from_percent(2),
+            cash_flows=flows,
+            irr=None,
+            industry="software",
+        )
+        assert any("below the typical" in f for f in flags)
+
+    def test_flags_discount_rate_above_industry_range(self):
+        from sdie.financial_modeling.domain.services import evaluate_assumption_flags
+
+        flows = [cf(0, "-1000"), cf(1, "1100")]
+        flags = evaluate_assumption_flags(
+            discount_rate=Percentage.from_percent(40),
+            cash_flows=flows,
+            irr=None,
+            industry="software",
+        )
+        assert any("above the typical" in f for f in flags)
+
+    def test_no_flag_for_discount_rate_within_range(self):
+        from sdie.financial_modeling.domain.services import evaluate_assumption_flags
+
+        flows = [cf(0, "-1000"), cf(1, "1100")]
+        flags = evaluate_assumption_flags(
+            discount_rate=Percentage.from_percent(12),
+            cash_flows=flows,
+            irr=None,
+            industry="software",
+        )
+        assert not any("discount rate" in f for f in flags)
+
+    def test_flags_unrealistically_high_irr(self):
+        from sdie.financial_modeling.domain.services import evaluate_assumption_flags
+
+        flows = [cf(0, "-1000"), cf(1, "1100")]
+        flags = evaluate_assumption_flags(
+            discount_rate=Percentage.from_percent(12),
+            cash_flows=flows,
+            irr=Percentage.from_percent(50),
+            industry="software",
+        )
+        assert any("IRR" in f for f in flags)
+
+    def test_flags_no_positive_cash_flow_period(self):
+        from sdie.financial_modeling.domain.services import evaluate_assumption_flags
+
+        flows = [cf(0, "-1000"), cf(1, "-100"), cf(2, "-50")]
+        flags = evaluate_assumption_flags(
+            discount_rate=Percentage.from_percent(10), cash_flows=flows, irr=None
+        )
+        assert any("cash-negative" in f for f in flags)
+
+    def test_defaults_to_general_industry_when_unspecified(self):
+        from sdie.financial_modeling.domain.services import evaluate_assumption_flags
+
+        flows = [cf(0, "-1000"), cf(1, "1100")]
+        flags = evaluate_assumption_flags(
+            discount_rate=Percentage.from_percent(10), cash_flows=flows, irr=None, industry=None
+        )
+        assert flags == []  # 10% is within the "general" 8-12% band
+
+
 class TestScenarios:
     def test_probability_weighted_npv(self):
         scenarios = [

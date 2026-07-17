@@ -33,10 +33,20 @@ class MCDARankingResult:
 
 
 @dataclass(frozen=True, slots=True)
+class WeightRobustnessResult:
+    criterion: str
+    current_weight: float
+    flips_at_weight: float | None
+    direction: str
+
+
+@dataclass(frozen=True, slots=True)
 class RankOptionsResult:
     analysis_id: UUID
     rankings: list[MCDARankingResult]
     recommended_option: str
+    weight_robustness: list[WeightRobustnessResult]
+    flags: list[str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +76,8 @@ class EvaluateDecisionTreeResult:
     recommended_option: str
     expected_value_with_perfect_info: float
     expected_value_of_perfect_information: float
+    flags: list[str]
+    probability_breakeven: dict | None
 
 
 @dataclass(frozen=True, slots=True)
