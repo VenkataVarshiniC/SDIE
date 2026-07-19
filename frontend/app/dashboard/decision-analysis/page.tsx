@@ -217,7 +217,10 @@ export default function DecisionAnalysisPage() {
             <Button onClick={runRanking} disabled={loading || weightSum !== 1} type="button">
               {loading ? "Ranking…" : "Rank options"}
             </Button>
-            {weightSum !== 1 && (
+            {weightSum > 1 && (
+              <p className="text-xs text-signal-down">Weights can't go above 1.00</p>
+            )}
+            {weightSum < 1 && (
               <p className="text-xs text-signal-down">Weights must sum to exactly 1.00</p>
             )}
             {error && <p className="text-signal-down text-sm">{error}</p>}

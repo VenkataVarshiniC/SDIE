@@ -193,7 +193,7 @@ export default function FinancialModelingPage() {
                     width={90}
                   />
                   <Tooltip
-                    contentStyle={{ background: "#7c99c6", border: "1px solid #2a333f" }}
+                    contentStyle={{ background: "#141a23", border: "1px solid #2a333f" }}
                     formatter={(v: number) => [`$${v.toLocaleString()}`, "NPV"]}
                   />
                   <Bar dataKey="value" radius={2}>
