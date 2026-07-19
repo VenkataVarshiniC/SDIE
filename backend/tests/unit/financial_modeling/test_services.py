@@ -120,7 +120,7 @@ class TestAssumptionFlags:
 
         flows = [cf(0, "-1000"), cf(1, "1100")]
         flags = evaluate_assumption_flags(
-            discount_rate=Percentage.from_percent(12),
+            discount_rate=Percentage.from_percent(9),  # within the real software band (~7.8-10.8%)
             cash_flows=flows,
             irr=None,
             industry="software",
@@ -132,7 +132,7 @@ class TestAssumptionFlags:
 
         flows = [cf(0, "-1000"), cf(1, "1100")]
         flags = evaluate_assumption_flags(
-            discount_rate=Percentage.from_percent(12),
+            discount_rate=Percentage.from_percent(9),
             cash_flows=flows,
             irr=Percentage.from_percent(50),
             industry="software",
@@ -153,9 +153,9 @@ class TestAssumptionFlags:
 
         flows = [cf(0, "-1000"), cf(1, "1100")]
         flags = evaluate_assumption_flags(
-            discount_rate=Percentage.from_percent(10), cash_flows=flows, irr=None, industry=None
+            discount_rate=Percentage.from_percent(7), cash_flows=flows, irr=None, industry=None
         )
-        assert flags == []  # 10% is within the "general" 8-12% band
+        assert flags == []  # 7% is within the real "general"/Total Market band (~5.5-8.5%)
 
 
 class TestScenarios:

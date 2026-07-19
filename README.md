@@ -121,3 +121,11 @@ backend/migrations/   0001 (financial + decision analysis)
 Real auth (OIDC/JWT replacing the header stub) is the biggest remaining
 gap before this could face real users. A frontend for the three API-only
 contexts is the next highest-value UI work.
+
+## Case studies
+
+`case-studies/blockbuster-netflix-2000.md` — a hindcast validation: the real 2000
+Blockbuster/Netflix acquisition decision, run through SDIE's live MCDA and
+recommendation-synthesis APIs using only publicly cited facts, with the actual generated
+one-pager PDF as the deliverable. Useful as a worked example of the full pipeline
+(quant analysis → evidence-grounded rationale → board-ready export) end to end.

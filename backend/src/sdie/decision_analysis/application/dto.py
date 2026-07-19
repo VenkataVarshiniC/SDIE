@@ -98,6 +98,13 @@ class RunMonteCarloCommand:
 
 
 @dataclass(frozen=True, slots=True)
+class HistogramBinDTO:
+    bin_start: float
+    bin_end: float
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class MonteCarloResultDTO:
     analysis_id: UUID
     iterations: int
@@ -108,3 +115,4 @@ class MonteCarloResultDTO:
     percentile_50: float
     percentile_95: float
     probability_negative: float
+    histogram: list[HistogramBinDTO]

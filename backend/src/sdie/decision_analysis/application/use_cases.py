@@ -7,6 +7,7 @@ import numpy as np
 from sdie.decision_analysis.application.dto import (
     EvaluateDecisionTreeCommand,
     EvaluateDecisionTreeResult,
+    HistogramBinDTO,
     MCDARankingResult,
     MonteCarloResultDTO,
     RankOptionsCommand,
@@ -187,6 +188,8 @@ class RunMonteCarloUseCase:
         await self._repository.save(analysis)
         await self._event_bus.publish_all(analysis.pull_pending_events())
 
+        histogram = self._build_histogram(result.raw_samples)
+
         return MonteCarloResultDTO(
             analysis_id=analysis.id,
             iterations=result.iterations,
@@ -197,7 +200,20 @@ class RunMonteCarloUseCase:
             percentile_50=result.percentile_50,
             percentile_95=result.percentile_95,
             probability_negative=result.probability_negative,
+            histogram=histogram,
         )
+
+    @staticmethod
+    def _build_histogram(samples: np.ndarray, *, bins: int = 30) -> list[HistogramBinDTO]:
+        """Bins the domain layer's already-computed raw samples for
+        charting. This is presentation-shaping, not analysis — the
+        underlying numbers all come from run_monte_carlo() in the domain
+        layer, untouched."""
+        counts, edges = np.histogram(samples, bins=bins)
+        return [
+            HistogramBinDTO(bin_start=float(edges[i]), bin_end=float(edges[i + 1]), count=int(counts[i]))
+            for i in range(len(counts))
+        ]
 
 
 class ListDecisionAnalysesUseCase:

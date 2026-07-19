@@ -16,3 +16,13 @@ class DecisionRationaleRepository(ABC):
 
     @abstractmethod
     async def list_for_tenant(self, tenant_id: TenantId) -> list[DecisionRationale]: ...
+
+
+class OnePagerRendererPort(ABC):
+    """Renders a DecisionRationale into a board-ready one-page PDF. An
+    infrastructure concern (like LLMPort) — the application layer decides
+    *what* goes in the memo, this port decides how it's laid out on a page.
+    """
+
+    @abstractmethod
+    def render(self, rationale: DecisionRationale, supporting_data: dict | None) -> bytes: ...

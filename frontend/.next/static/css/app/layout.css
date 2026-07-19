@@ -502,12 +502,18 @@ video {
 [hidden]:where(:not([hidden="until-found"])) {
   display: none;
 }
+.fixed {
+  position: fixed;
+}
 .absolute {
   position: absolute;
 }
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
+}
+.-mt-3 {
+  margin-top: -0.75rem;
 }
 .mb-1 {
   margin-bottom: 0.25rem;
@@ -576,11 +582,20 @@ video {
 .grid-cols-1 {
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.grid-cols-\[1fr_70px_100px_auto\] {
+  grid-template-columns: 1fr 70px 100px auto;
+}
 .grid-cols-\[1fr_90px\] {
   grid-template-columns: 1fr 90px;
+}
+.grid-cols-\[1fr_auto\] {
+  grid-template-columns: 1fr auto;
 }
 .grid-cols-\[60px_1fr\] {
   grid-template-columns: 60px 1fr;
@@ -590,6 +605,9 @@ video {
 }
 .items-start {
   align-items: flex-start;
+}
+.items-end {
+  align-items: flex-end;
 }
 .items-center {
   align-items: center;
@@ -645,9 +663,18 @@ video {
 .border-t {
   border-top-width: 1px;
 }
+.border-amber-700\/40 {
+  border-color: rgb(180 83 9 / 0.4);
+}
 .border-ink-border {
   --tw-border-opacity: 1;
   border-color: rgb(42 51 63 / var(--tw-border-opacity, 1));
+}
+.border-ledger\/40 {
+  border-color: rgb(47 168 154 / 0.4);
+}
+.bg-amber-950\/30 {
+  background-color: rgb(69 26 3 / 0.3);
 }
 .bg-ink-0 {
   --tw-bg-opacity: 1;
@@ -661,8 +688,14 @@ video {
   --tw-bg-opacity: 1;
   background-color: rgb(30 107 98 / var(--tw-bg-opacity, 1));
 }
+.bg-ledger\/10 {
+  background-color: rgb(47 168 154 / 0.1);
+}
 .p-3 {
   padding: 0.75rem;
+}
+.p-4 {
+  padding: 1rem;
 }
 .p-5 {
   padding: 1.25rem;
@@ -773,6 +806,13 @@ video {
 .tracking-wider {
   letter-spacing: 0.05em;
 }
+.text-amber-200\/90 {
+  color: rgb(253 230 138 / 0.9);
+}
+.text-amber-500 {
+  --tw-text-opacity: 1;
+  color: rgb(245 158 11 / var(--tw-text-opacity, 1));
+}
 .text-ledger {
   --tw-text-opacity: 1;
   color: rgb(47 168 154 / var(--tw-text-opacity, 1));
@@ -840,6 +880,11 @@ body {
   color: rgb(237 234 225 / var(--tw-text-opacity, 1));
 }
 
+.hover\:text-signal-down:hover {
+  --tw-text-opacity: 1;
+  color: rgb(192 96 74 / var(--tw-text-opacity, 1));
+}
+
 .focus\:border-ledger:focus {
   --tw-border-opacity: 1;
   border-color: rgb(47 168 154 / var(--tw-border-opacity, 1));
@@ -879,6 +924,10 @@ body {
 
   .lg\:grid-cols-\[420px_1fr\] {
     grid-template-columns: 420px 1fr;
+  }
+
+  .lg\:grid-cols-\[460px_1fr\] {
+    grid-template-columns: 460px 1fr;
   }
 }
 

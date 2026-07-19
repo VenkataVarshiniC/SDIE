@@ -82,6 +82,12 @@ class DistributionSchema(BaseModel):
     params: tuple[float, ...]
 
 
+class HistogramBinSchema(BaseModel):
+    bin_start: float
+    bin_end: float
+    count: int
+
+
 class RunMonteCarloRequest(BaseModel):
     title: str
     variables: list[DistributionSchema] = Field(min_length=1)
@@ -100,3 +106,4 @@ class MonteCarloResponse(BaseModel):
     percentile_50: float
     percentile_95: float
     probability_negative: float
+    histogram: list[HistogramBinSchema] = Field(default_factory=list)

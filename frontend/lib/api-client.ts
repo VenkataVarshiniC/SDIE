@@ -6,8 +6,10 @@ import type {
   EvaluateDecisionTreeResponse,
   EvaluateScenariosRequest,
   EvaluateScenariosResponse,
+  MonteCarloResponse,
   RankOptionsRequest,
   RankOptionsResponse,
+  RunMonteCarloRequest,
   SensitivityRequest,
   SensitivityResponse,
 } from "./types";
@@ -108,4 +110,7 @@ export const decisionAnalysisApi = {
   listAnalyses: () => getRequest<AnalysisSummary[]>("/decision-analysis/analyses"),
 
   clearHistory: () => deleteRequest<{ deleted_count: number }>("/decision-analysis/analyses"),
+
+  runMonteCarlo: (req: RunMonteCarloRequest) =>
+    request<MonteCarloResponse>("/decision-analysis/monte-carlo/run", req),
 };

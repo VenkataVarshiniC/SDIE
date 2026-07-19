@@ -9,7 +9,10 @@ from sdie.recommendation_synthesis.application.dto import (
     OverrideRationaleCommand,
     RationaleResult,
 )
-from sdie.recommendation_synthesis.application.ports import DecisionRationaleRepository
+from sdie.recommendation_synthesis.application.ports import (
+    DecisionRationaleRepository,
+    OnePagerRendererPort,
+)
 from sdie.recommendation_synthesis.domain.entities import (
     DecisionRationale,
     EvidenceCitation,
@@ -124,6 +127,28 @@ class ListRationalesUseCase:
     async def execute(self, tenant_id: TenantId) -> list[RationaleResult]:
         rationales = await self._repository.list_for_tenant(tenant_id)
         return [_to_result(r) for r in rationales]
+
+
+class GenerateOnePagerUseCase:
+    """Produces the actual client-facing deliverable — a one-page PDF memo
+    — from a DecisionRationale. `supporting_data` is an optional dict the
+    caller (the interface layer, which is allowed to know about multiple
+    bounded contexts for presentation purposes — see the router) fetches
+    from whichever context produced the underlying quant analysis, so the
+    memo can show real numbers, not just the recommendation and citations.
+    This use case itself stays agnostic to where that dict came from."""
+
+    def __init__(self, repository: DecisionRationaleRepository, renderer: OnePagerRendererPort):
+        self._repository = repository
+        self._renderer = renderer
+
+    async def execute(
+        self, rationale_id: UUID, tenant_id: TenantId, supporting_data: dict | None = None
+    ) -> bytes:
+        rationale = await self._repository.get(rationale_id, tenant_id)
+        if rationale is None:
+            raise RecommendationSynthesisError(f"Rationale {rationale_id} not found")
+        return self._renderer.render(rationale, supporting_data)
 
 
 class GenerateNarrativeUseCase:

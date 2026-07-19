@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Panel } from "@/components/ui/panel";
 import { Button, Field, TextInput } from "@/components/ui/field";
+import { FlagsCallout } from "@/components/ui/flags";
 import { decisionAnalysisApi, ApiError } from "@/lib/api-client";
 import type { AnalysisSummary, RankOptionsResponse } from "@/lib/types";
 
@@ -140,13 +141,29 @@ export default function DecisionAnalysisPage() {
         Back to overview
       </Link>
 
-      <div>
-        <span className="text-[11px] uppercase tracking-wider text-ledger">Quant core / 02</span>
-        <h1 className="font-display text-[28px] mt-1">Decision analysis</h1>
-        <p className="text-muted text-sm mt-1 max-w-xl">
-          Weighted-sum MCDA. Every score is min-max normalized per criterion — traceable, not a
-          black box.
-        </p>
+      <div className="flex items-baseline justify-between">
+        <div>
+          <span className="text-[11px] uppercase tracking-wider text-ledger">Quant core / 02</span>
+          <h1 className="font-display text-[28px] mt-1">Decision analysis</h1>
+          <p className="text-muted text-sm mt-1 max-w-xl">
+            Weighted-sum MCDA. Every score is min-max normalized per criterion — traceable, not a
+            black box.
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1 text-sm">
+          <Link
+            href="/dashboard/decision-analysis/monte-carlo"
+            className="text-muted hover:text-parchment transition-colors"
+          >
+            Monte Carlo simulation →
+          </Link>
+          <Link
+            href="/dashboard/decision-analysis/decision-tree"
+            className="text-muted hover:text-parchment transition-colors"
+          >
+            Decision tree (EMV/EVPI) →
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-6">
@@ -238,6 +255,26 @@ export default function DecisionAnalysisPage() {
                 means that option was the best on that criterion among those compared, not an
                 absolute benchmark.
               </div>
+
+              {result.flags.length > 0 && <FlagsCallout flags={result.flags} />}
+
+              {result.weight_robustness.length > 0 && (
+                <div className="border-t border-ink-border pt-3 flex flex-col gap-2">
+                  <span className="text-[11px] uppercase tracking-wider text-muted">
+                    Weight robustness
+                  </span>
+                  {result.weight_robustness.map((r) => (
+                    <div key={r.criterion} className="flex items-center justify-between text-sm">
+                      <span className="text-parchment">{r.criterion.replace(/_/g, " ")}</span>
+                      <span className="font-data text-muted">
+                        {r.flips_at_weight === null
+                          ? "never flips"
+                          : `flips if weight ${r.direction}s to ${(r.flips_at_weight * 100).toFixed(0)}%`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <p className="text-sm text-muted leading-relaxed border-t border-ink-border pt-3">
                 {describeRanking(result)}

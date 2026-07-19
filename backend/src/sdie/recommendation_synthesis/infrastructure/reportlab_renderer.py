@@ -1,0 +1,221 @@
+"""ReportLab implementation of OnePagerRendererPort. Only file allowed to
+import reportlab. Lays out a DecisionRationale as a one-page memo in the
+Situation / Recommendation / Why / Evidence / Risk structure a case team
+actually hands to a client — not a dump of the JSON.
+"""
+from __future__ import annotations
+
+import io
+from datetime import datetime
+
+from reportlab.graphics.charts.barcharts import HorizontalBarChart
+from reportlab.graphics.shapes import Drawing, String
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import (
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+from sdie.recommendation_synthesis.application.ports import OnePagerRendererPort
+from sdie.recommendation_synthesis.domain.entities import DecisionRationale
+
+_INK = colors.HexColor("#0d1117")
+_LEDGER = colors.HexColor("#1E6B62")
+_MUTED = colors.HexColor("#5A6472")
+
+
+class ReportLabOnePagerRenderer(OnePagerRendererPort):
+    def render(self, rationale: DecisionRationale, supporting_data: dict | None) -> bytes:
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=letter,
+            topMargin=0.6 * inch,
+            bottomMargin=0.6 * inch,
+            leftMargin=0.7 * inch,
+            rightMargin=0.7 * inch,
+        )
+
+        styles = self._styles()
+        story = []
+
+        story.append(Paragraph("STRATEGIC DECISION MEMO", styles["Eyebrow"]))
+        story.append(Paragraph(rationale.title, styles["Title"]))
+        story.append(Spacer(1, 4))
+        story.append(
+            Paragraph(
+                f"Generated {datetime.now().strftime('%B %d, %Y')} \u00b7 "
+                f"Source: {rationale.quant_source.context.replace('_', ' ')} analysis "
+                f"{str(rationale.quant_source.analysis_id)[:8]}",
+                styles["Meta"],
+            )
+        )
+        story.append(Spacer(1, 14))
+
+        story.append(Paragraph("RECOMMENDATION", styles["Heading"]))
+        story.append(Paragraph(rationale.current_recommendation, styles["Recommendation"]))
+        if rationale.overrides:
+            latest = rationale.overrides[-1]
+            story.append(
+                Paragraph(
+                    f"Revised from the original quant-derived recommendation "
+                    f"(\u201c{rationale.recommended_option}\u201d) by {latest.overridden_by}: "
+                    f"{latest.reason}",
+                    styles["Overridden"],
+                )
+            )
+        story.append(Spacer(1, 10))
+
+        story.append(Paragraph("WHY", styles["Heading"]))
+        story.append(Paragraph(rationale.confidence_note, styles["Body"]))
+        story.append(Spacer(1, 10))
+
+        if supporting_data:
+            chart = self._build_supporting_chart(supporting_data)
+            if chart is not None:
+                story.append(Paragraph("SUPPORTING ANALYSIS", styles["Heading"]))
+                story.append(chart)
+                story.append(Spacer(1, 10))
+
+        if rationale.evidence_citations:
+            story.append(Paragraph("EVIDENCE", styles["Heading"]))
+            for c in rationale.evidence_citations:
+                story.append(
+                    Paragraph(f'\u201c{c.excerpt}\u201d \u2014 <i>{c.source_label}</i>', styles["Evidence"])
+                )
+            story.append(Spacer(1, 10))
+
+        if rationale.overrides:
+            story.append(Paragraph("OVERRIDE HISTORY", styles["Heading"]))
+            rows = [["When", "By", "New recommendation", "Reason"]]
+            for o in rationale.overrides:
+                rows.append(
+                    [
+                        o.overridden_at.strftime("%Y-%m-%d"),
+                        o.overridden_by,
+                        o.new_recommended_option,
+                        o.reason,
+                    ]
+                )
+            table = Table(rows, colWidths=[0.9 * inch, 1.1 * inch, 1.6 * inch, 2.6 * inch])
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), _INK),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D0D0D0")),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F5F0")]),
+                    ]
+                )
+            )
+            story.append(table)
+
+        story.append(Spacer(1, 16))
+        story.append(
+            Paragraph(
+                "Generated by the Strategic Decision Intelligence Engine. Every claim above traces "
+                "to a structured input \u2014 the quant analysis referenced above, or the evidence cited "
+                "verbatim. Nothing on this page was inferred beyond what those sources state.",
+                styles["Footer"],
+            )
+        )
+
+        doc.build(story)
+        return buffer.getvalue()
+
+    @staticmethod
+    def _styles() -> dict[str, ParagraphStyle]:
+        base = getSampleStyleSheet()
+        return {
+            "Eyebrow": ParagraphStyle(
+                "Eyebrow", parent=base["Normal"], textColor=_LEDGER, fontSize=9,
+                fontName="Helvetica-Bold", spaceAfter=2,
+            ),
+            "Title": ParagraphStyle(
+                "Title", parent=base["Title"], textColor=_INK, fontSize=20, leading=24,
+            ),
+            "Meta": ParagraphStyle("Meta", parent=base["Normal"], textColor=_MUTED, fontSize=8),
+            "Heading": ParagraphStyle(
+                "Heading", parent=base["Normal"], textColor=_LEDGER, fontSize=10,
+                fontName="Helvetica-Bold", spaceBefore=6, spaceAfter=4,
+            ),
+            "Recommendation": ParagraphStyle(
+                "Recommendation", parent=base["Normal"], textColor=_INK, fontSize=15,
+                fontName="Helvetica-Bold", leading=19,
+            ),
+            "Overridden": ParagraphStyle(
+                "Overridden", parent=base["Normal"], textColor=_MUTED, fontSize=8.5,
+                fontName="Helvetica-Oblique", spaceBefore=4,
+            ),
+            "Body": ParagraphStyle("Body", parent=base["Normal"], textColor=_INK, fontSize=10, leading=14),
+            "Evidence": ParagraphStyle(
+                "Evidence", parent=base["Normal"], textColor=_INK, fontSize=9, leading=13, spaceAfter=4,
+                leftIndent=10,
+            ),
+            "Footer": ParagraphStyle(
+                "Footer", parent=base["Normal"], textColor=_MUTED, fontSize=7.5, leading=10,
+            ),
+        }
+
+    @staticmethod
+    def _build_supporting_chart(supporting_data: dict) -> Drawing | None:
+        """Recognizes two shapes: a decision_analysis MCDA result
+        (`rankings`: list of {option, weighted_score}) or a
+        financial_modeling result (`npv`, `irr_percent`, `payback_period`).
+        Anything else is skipped rather than crashing \u2014 a one-pager
+        shouldn't fail to generate because the supporting numbers came in
+        an unexpected shape."""
+        rankings = supporting_data.get("rankings")
+        if rankings:
+            return ReportLabOnePagerRenderer._mcda_bar_chart(rankings)
+
+        if "npv" in supporting_data:
+            return ReportLabOnePagerRenderer._financial_summary_chart(supporting_data)
+
+        return None
+
+    @staticmethod
+    def _mcda_bar_chart(rankings: list[dict]) -> Drawing:
+        top = rankings[:5]
+        labels = [r["option"][:22] for r in top]
+        values = [r["weighted_score"] for r in top]
+
+        drawing = Drawing(420, 30 + 22 * len(top))
+        chart = HorizontalBarChart()
+        chart.x, chart.y = 100, 10
+        chart.width, chart.height = 280, 20 * len(top)
+        chart.data = [values]
+        chart.categoryAxis.categoryNames = labels
+        chart.categoryAxis.labels.fontSize = 8
+        chart.valueAxis.valueMin = 0
+        chart.valueAxis.valueMax = 1
+        chart.bars[0].fillColor = _LEDGER
+        drawing.add(chart)
+        return drawing
+
+    @staticmethod
+    def _financial_summary_chart(data: dict) -> Drawing:
+        drawing = Drawing(420, 60)
+        npv = data.get("npv")
+        irr = data.get("irr_percent")
+        payback = data.get("payback_period")
+
+        parts = [f"NPV: {npv}"]
+        if irr is not None:
+            parts.append(f"IRR: {irr}%")
+        if payback is not None:
+            parts.append(f"Payback: {payback} yrs")
+
+        drawing.add(
+            String(0, 30, "   |   ".join(parts), fontSize=13, fontName="Helvetica-Bold", fillColor=_INK)
+        )
+        return drawing

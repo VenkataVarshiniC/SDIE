@@ -20,6 +20,16 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/decision-analysis/page.js"
+    ],
+    "/dashboard/decision-analysis/monte-carlo/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/decision-analysis/monte-carlo/page.js"
+    ],
+    "/dashboard/decision-analysis/decision-tree/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/decision-analysis/decision-tree/page.js"
     ]
   }
 }

@@ -21,8 +21,12 @@ class CreateCashFlowModelRequest(BaseModel):
     cash_flows: list[CashFlowSchema] = Field(min_length=1)
     industry: str | None = Field(
         default=None,
-        description="e.g. 'software', 'retail', 'manufacturing', 'energy', 'healthcare' — "
-        "used only to select benchmark ranges for assumption flags, defaults to 'general'",
+        description="Selects a benchmark WACC/IRR range sourced from NYU Stern/Damodaran's "
+        "Cost of Capital by Sector dataset (Jan 2026). Options: software, internet_software, "
+        "retail, grocery_retail, manufacturing, auto, energy, energy_exploration, "
+        "renewable_energy, healthcare, biotech, pharma, banking, telecom, media_entertainment, "
+        "hospitality, real_estate, semiconductor, aerospace_defense, utilities, transportation. "
+        "Defaults to 'general' (the total US market average) if omitted.",
     )
 
     @field_validator("currency")

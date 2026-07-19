@@ -14,6 +14,7 @@ export interface CreateCashFlowModelRequest {
   currency: string;
   discount_rate_percent: string;
   cash_flows: CashFlowInput[];
+  industry?: string | null;
 }
 
 export interface CashFlowModelResponse {
@@ -24,6 +25,7 @@ export interface CashFlowModelResponse {
   npv: string;
   irr_percent: string | null;
   payback_period: string | null;
+  flags: string[];
 }
 
 export interface ScenarioInput {
@@ -95,10 +97,19 @@ export interface MCDARanking {
   normalized_scores: Record<string, number>;
 }
 
+export interface WeightRobustness {
+  criterion: string;
+  current_weight: number;
+  flips_at_weight: number | null;
+  direction: string;
+}
+
 export interface RankOptionsResponse {
   analysis_id: string;
   rankings: MCDARanking[];
   recommended_option: string;
+  weight_robustness: WeightRobustness[];
+  flags: string[];
 }
 
 export interface OutcomeInput {
@@ -117,12 +128,21 @@ export interface EvaluateDecisionTreeRequest {
   options: DecisionOptionInput[];
 }
 
+export interface ProbabilityBreakeven {
+  outcome_name: string;
+  option_a: string;
+  option_b: string;
+  breakeven_probability: number | null;
+}
+
 export interface EvaluateDecisionTreeResponse {
   analysis_id: string;
   ranked_options: [string, number][];
   recommended_option: string;
   expected_value_with_perfect_info: number;
   expected_value_of_perfect_information: number;
+  flags: string[];
+  probability_breakeven: ProbabilityBreakeven | null;
 }
 
 export interface AnalysisSummary {
@@ -132,4 +152,41 @@ export interface AnalysisSummary {
   recommended_option: string;
   result_data: Record<string, unknown>;
   created_at: string;
+}
+
+// --- Monte Carlo ---
+
+export type DistributionKind = "normal" | "triangular" | "uniform" | "lognormal";
+
+export interface DistributionInput {
+  name: string;
+  kind: DistributionKind;
+  params: number[];
+}
+
+export interface RunMonteCarloRequest {
+  title: string;
+  variables: DistributionInput[];
+  fixed_costs: number;
+  iterations: number;
+  seed: number;
+}
+
+export interface HistogramBin {
+  bin_start: number;
+  bin_end: number;
+  count: number;
+}
+
+export interface MonteCarloResponse {
+  analysis_id: string;
+  iterations: number;
+  seed: number;
+  mean: number;
+  std_dev: number;
+  percentile_5: number;
+  percentile_50: number;
+  percentile_95: number;
+  probability_negative: number;
+  histogram: HistogramBin[];
 }

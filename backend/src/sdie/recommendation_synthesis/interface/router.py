@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sdie.decision_analysis.infrastructure.repository import SqlAlchemyDecisionAnalysisRepository
+from sdie.financial_modeling.infrastructure.repository import SqlAlchemyCashFlowModelRepository
 from sdie.recommendation_synthesis.application.dto import (
     CreateRationaleCommand,
     EvidenceCitationInput,
@@ -13,11 +15,13 @@ from sdie.recommendation_synthesis.application.dto import (
 from sdie.recommendation_synthesis.application.use_cases import (
     CreateRationaleUseCase,
     GenerateNarrativeUseCase,
+    GenerateOnePagerUseCase,
     GetRationaleUseCase,
     ListRationalesUseCase,
     OverrideRationaleUseCase,
 )
 from sdie.recommendation_synthesis.domain.entities import RecommendationSynthesisError
+from sdie.recommendation_synthesis.infrastructure.renderer_provider import get_one_pager_renderer
 from sdie.recommendation_synthesis.infrastructure.repository import (
     SqlAlchemyDecisionRationaleRepository,
 )
@@ -183,3 +187,55 @@ async def generate_narrative(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
 
     return NarrativeResponse(rationale_id=rationale_id, narrative=narrative)
+
+
+@router.get("/rationales/{rationale_id}/one-pager")
+async def generate_one_pager(
+    rationale_id: UUID,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """Generates a board-ready one-page PDF memo. This is the one endpoint
+    in the platform allowed to reach into another bounded context's
+    repository directly — composing across contexts for a presentation
+    artifact is an interface-layer responsibility, not a domain or
+    application one. The rationale itself never depends on those
+    repositories; only this route does, to fetch the numbers behind the
+    'SUPPORTING ANALYSIS' section."""
+    await set_tenant_context(session, principal.tenant_id)
+    rationale_repository = SqlAlchemyDecisionRationaleRepository(session)
+
+    tenant_id = TenantId(principal.tenant_id)
+    rationale = await GetRationaleUseCase(rationale_repository).execute(rationale_id, tenant_id)
+    if rationale is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rationale not found")
+
+    supporting_data: dict | None = None
+    if rationale.quant_context == "decision_analysis":
+        analysis = await SqlAlchemyDecisionAnalysisRepository(session).get(
+            rationale.quant_analysis_id, tenant_id
+        )
+        supporting_data = analysis.result_data if analysis else None
+    elif rationale.quant_context == "financial_modeling":
+        model = await SqlAlchemyCashFlowModelRepository(session).get(
+            rationale.quant_analysis_id, tenant_id
+        )
+        if model is not None:
+            supporting_data = {
+                "npv": str(model.npv.amount) if model.npv else None,
+                "irr_percent": str(model.irr.as_percent()) if model.irr else None,
+                "payback_period": str(model.payback_period) if model.payback_period else None,
+            }
+
+    use_case = GenerateOnePagerUseCase(rationale_repository, get_one_pager_renderer())
+    try:
+        pdf_bytes = await use_case.execute(rationale_id, tenant_id, supporting_data)
+    except RecommendationSynthesisError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    filename = f"decision-memo-{rationale_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

@@ -30,6 +30,7 @@ from sdie.decision_analysis.infrastructure.repository import SqlAlchemyDecisionA
 from sdie.decision_analysis.interface.schemas import (
     EvaluateDecisionTreeRequest,
     EvaluateDecisionTreeResponse,
+    HistogramBinSchema,
     MCDARankingSchema,
     MonteCarloResponse,
     RankOptionsRequest,
@@ -240,4 +241,8 @@ async def run_monte_carlo(
         percentile_50=result.percentile_50,
         percentile_95=result.percentile_95,
         probability_negative=result.probability_negative,
+        histogram=[
+            HistogramBinSchema(bin_start=b.bin_start, bin_end=b.bin_end, count=b.count)
+            for b in result.histogram
+        ],
     )

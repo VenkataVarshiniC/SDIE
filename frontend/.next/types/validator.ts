@@ -36,6 +36,24 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 }
 
 
+// Validate ../../app/dashboard/decision-analysis/decision-tree/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/decision-analysis/decision-tree">> = Specific
+  const handler = {} as typeof import("../../app/dashboard/decision-analysis/decision-tree/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/dashboard/decision-analysis/monte-carlo/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/decision-analysis/monte-carlo">> = Specific
+  const handler = {} as typeof import("../../app/dashboard/decision-analysis/monte-carlo/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/dashboard/decision-analysis/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/dashboard/decision-analysis">> = Specific

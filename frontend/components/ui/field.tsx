@@ -28,6 +28,21 @@ export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+export function Select({
+  children,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      className={`bg-ink-0 border border-ink-border rounded-sm px-3 py-2 text-sm text-parchment
+        focus:outline-none focus:border-ledger transition-colors ${props.className ?? ""}`}
+    >
+      {children}
+    </select>
+  );
+}
+
 export function Button({
   children,
   variant = "primary",
