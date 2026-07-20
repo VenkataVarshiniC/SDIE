@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/dashboard", label: "Financial modeling" },
   { href: "/dashboard/decision-analysis", label: "Decision analysis" },
-  { href: "/dashboard/evidence-research", label: "Evidence research"},
-  { href: "/dashboard/recommendation-synthesis", label: "Recommendation synthesis"},
-  { href: "/dashboard/problem-framing", label: "Problem framing"}
+  { href: "/dashboard/evidence-research", label: "Evidence research" },
+  { href: "/dashboard/recommendation-synthesis", label: "Recommendation synthesis" },
+  { href: "/dashboard/problem-framing", label: "Problem framing" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="min-h-screen flex flex-col">
           <header className="border-b border-ink-border px-8 py-5 flex items-baseline justify-between">
             <div className="flex items-baseline gap-3">
-              <span className="font-display text-[22px] tracking-tight"><a></a>SDIE</span>
+              <span className="font-display text-[22px] tracking-tight">SDIE</span>
               <span className="text-muted text-sm">Strategic Decision Intelligence Engine</span>
             </div>
             <nav className="flex gap-6 text-sm">

@@ -16,15 +16,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/workspace/page.js"
     ],
-    "/dashboard/page": [
+    "/dashboard/workspace/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/page.js"
-    ],
-    "/dashboard/evidence-research/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/evidence-research/page.js"
+      "static/chunks/app/dashboard/workspace/[id]/page.js"
     ],
     "/dashboard/recommendation-synthesis/page": [
       "static/chunks/webpack.js",
@@ -35,26 +30,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/problem-framing/page.js"
-    ],
-    "/dashboard/workspace/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/workspace/[id]/page.js"
-    ],
-    "/dashboard/decision-analysis/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/decision-analysis/page.js"
-    ],
-    "/dashboard/decision-analysis/monte-carlo/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/decision-analysis/monte-carlo/page.js"
-    ],
-    "/dashboard/decision-analysis/decision-tree/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/decision-analysis/decision-tree/page.js"
     ]
   }
 }
