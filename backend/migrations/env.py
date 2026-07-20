@@ -20,6 +20,7 @@ from sdie.recommendation_synthesis.infrastructure import (
     orm as _recommendation_synthesis_orm,  # noqa: F401
 )
 from sdie.shared_kernel.infrastructure.database import Base
+from sdie.workspace.infrastructure import orm as _workspace_orm  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

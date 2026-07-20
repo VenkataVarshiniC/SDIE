@@ -12,6 +12,7 @@ from sdie.financial_modeling.interface.router import router as financial_modelin
 from sdie.problem_framing.interface.router import router as problem_framing_router
 from sdie.recommendation_synthesis.interface.router import router as recommendation_synthesis_router
 from sdie.shared_kernel.interface.error_handling import register_exception_handlers
+from sdie.workspace.interface.router import router as workspace_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,6 +43,7 @@ app.include_router(decision_analysis_router, prefix="/api/v1")
 app.include_router(evidence_research_router, prefix="/api/v1")
 app.include_router(recommendation_synthesis_router, prefix="/api/v1")
 app.include_router(problem_framing_router, prefix="/api/v1")
+app.include_router(workspace_router, prefix="/api/v1")
 
 
 @app.get("/health")

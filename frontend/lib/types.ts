@@ -190,3 +190,153 @@ export interface MonteCarloResponse {
   probability_negative: number;
   histogram: HistogramBin[];
 }
+
+// --- evidence research ---
+
+export interface IngestDocumentRequest {
+  title: string;
+  source_label: string;
+  content: string;
+}
+
+export interface DocumentResponse {
+  document_id: string;
+  title: string;
+  source_label: string;
+  created_at: string;
+}
+
+export interface SearchEvidenceRequest {
+  query: string;
+  limit?: number;
+}
+
+export interface CitationResponse {
+  document_id: string;
+  document_title: string;
+  source_label: string;
+  excerpt: string;
+  relevance_score: number;
+}
+
+// --- recommendation synthesis ---
+
+export type QuantContext = "financial_modeling" | "decision_analysis";
+
+export interface EvidenceCitationSchema {
+  document_id: string;
+  document_title: string;
+  source_label: string;
+  excerpt: string;
+  relevance_score: number;
+}
+
+export interface CreateRationaleRequest {
+  title: string;
+  quant_context: QuantContext;
+  quant_analysis_id: string;
+  recommended_option: string;
+  confidence_note: string;
+  evidence_citations: EvidenceCitationSchema[];
+}
+
+export interface OverrideSchema {
+  overridden_by: string;
+  reason: string;
+  new_recommended_option: string;
+  overridden_at: string;
+}
+
+export interface RationaleResponse {
+  rationale_id: string;
+  title: string;
+  quant_context: string;
+  quant_analysis_id: string;
+  recommended_option: string;
+  current_recommendation: string;
+  confidence_note: string;
+  evidence_citations: EvidenceCitationSchema[];
+  overrides: OverrideSchema[];
+  created_at: string;
+}
+
+export interface OverrideRationaleRequest {
+  overridden_by: string;
+  reason: string;
+  new_recommended_option: string;
+}
+
+export interface NarrativeResponse {
+  rationale_id: string;
+  narrative: string;
+}
+
+// --- problem framing ---
+
+export type Framework = "five_forces" | "swot";
+
+export interface FrameworkSectionSchema {
+  key: string;
+  label: string;
+  guiding_question: string;
+}
+
+export interface CreateFrameworkAnalysisRequest {
+  title: string;
+  framework: Framework;
+  entries: Record<string, string[]>;
+}
+
+export interface FrameworkAnalysisResponse {
+  analysis_id: string;
+  title: string;
+  framework: string;
+  entries: Record<string, string[]>;
+  completion_ratio: number;
+  created_at: string;
+}
+
+// --- workspace ---
+
+export type EngagementStatus =
+  | "framing"
+  | "evidence_gathering"
+  | "quant_analysis"
+  | "synthesis"
+  | "complete";
+
+export interface CreateEngagementRequest {
+  title: string;
+}
+
+export interface EngagementResponse {
+  engagement_id: string;
+  title: string;
+  status: EngagementStatus;
+  problem_framing_analysis_id: string | null;
+  evidence_document_ids: string[];
+  financial_model_id: string | null;
+  decision_analysis_id: string | null;
+  rationale_id: string | null;
+  created_at: string;
+}
+
+export interface LinkProblemFramingRequest {
+  analysis_id: string;
+}
+
+export interface AddEvidenceRequest {
+  document_id: string;
+}
+
+export interface LinkFinancialModelRequest {
+  model_id: string;
+}
+
+export interface LinkDecisionAnalysisRequest {
+  analysis_id: string;
+}
+
+export interface LinkRationaleRequest {
+  rationale_id: string;
+}

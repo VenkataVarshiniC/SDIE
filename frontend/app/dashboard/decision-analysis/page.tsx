@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Panel } from "@/components/ui/panel";
 import { Button, Field, TextInput } from "@/components/ui/field";
 import { FlagsCallout } from "@/components/ui/flags";
-import { decisionAnalysisApi, ApiError } from "@/lib/api-client";
+import { decisionAnalysisApi, workspaceApi, ApiError } from "@/lib/api-client";
 import type { AnalysisSummary, RankOptionsResponse } from "@/lib/types";
 
 interface CriterionRow {
@@ -34,7 +34,10 @@ const DEFAULT_OPTIONS: OptionRow[] = [
   { name: "Partner / JV", scores: { cost: "6", speed_to_market: "7", strategic_fit: "5" } },
 ];
 
-export default function DecisionAnalysisPage() {
+function DecisionAnalysisPageInner() {
+  const searchParams = useSearchParams();
+  const engagementId = searchParams.get("engagement_id");
+
   const [title, setTitle] = useState("Market entry approach");
   const [criteria, setCriteria] = useState<CriterionRow[]>(DEFAULT_CRITERIA);
   const [options, setOptions] = useState<OptionRow[]>(DEFAULT_OPTIONS);
@@ -101,6 +104,12 @@ export default function DecisionAnalysisPage() {
       });
       setResult(res);
       refreshHistory();
+
+      if (engagementId) {
+        await workspaceApi.linkDecisionAnalysis(engagementId, { analysis_id: res.analysis_id });
+        window.location.href = `/dashboard/workspace/${engagementId}`;
+        return;
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
     } finally {
@@ -140,6 +149,12 @@ export default function DecisionAnalysisPage() {
         />
         Back to overview
       </Link>
+
+      {engagementId && (
+        <p className="text-xs text-ledger bg-ink-2 border border-ledger/40 rounded-sm px-3 py-2 w-fit">
+          Running this analysis will link it back to your workspace engagement.
+        </p>
+      )}
 
       <div className="flex items-baseline justify-between">
         <div>
@@ -346,4 +361,12 @@ function describeRanking(result: RankOptionsResponse): string {
       : " No single criterion dominates — its lead comes from being solidly competitive across the board.";
 
   return `"${top.option}" is the recommended option. ${marginSentence}${drivingSentence} A narrow margin is worth re-examining the criteria weights before committing; a wide one is a more robust recommendation.`;
+}
+
+export default function DecisionAnalysisPage() {
+  return (
+    <Suspense fallback={<div className="text-muted text-sm">Loading…</div>}>
+      <DecisionAnalysisPageInner />
+    </Suspense>
+  );
 }

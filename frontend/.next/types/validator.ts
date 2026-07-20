@@ -63,10 +63,55 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../app/dashboard/evidence-research/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/evidence-research">> = Specific
+  const handler = {} as typeof import("../../app/dashboard/evidence-research/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/dashboard/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/dashboard">> = Specific
   const handler = {} as typeof import("../../app/dashboard/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/dashboard/problem-framing/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/problem-framing">> = Specific
+  const handler = {} as typeof import("../../app/dashboard/problem-framing/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/dashboard/recommendation-synthesis/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/recommendation-synthesis">> = Specific
+  const handler = {} as typeof import("../../app/dashboard/recommendation-synthesis/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/dashboard/workspace/[id]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/workspace/[id]">> = Specific
+  const handler = {} as typeof import("../../app/dashboard/workspace/[id]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/dashboard/workspace/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/workspace">> = Specific
+  const handler = {} as typeof import("../../app/dashboard/workspace/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
