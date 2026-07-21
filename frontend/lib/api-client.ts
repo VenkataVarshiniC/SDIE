@@ -155,6 +155,8 @@ export const evidenceResearchApi = {
 
   searchEvidence: (req: SearchEvidenceRequest) =>
     request<CitationResponse[]>("/evidence-research/search", req),
+
+  clearHistory: () => deleteRequest<{ deleted_count: number }>("/evidence-research/documents"),
 };
 
 export const recommendationSynthesisApi = {
@@ -174,6 +176,9 @@ export const recommendationSynthesisApi = {
 
   downloadOnePager: (id: string) =>
     getBlobRequest(`/recommendation-synthesis/rationales/${id}/one-pager`),
+
+  clearHistory: () =>
+    deleteRequest<{ deleted_count: number }>("/recommendation-synthesis/rationales"),
 };
 
 export const problemFramingApi = {
@@ -187,6 +192,8 @@ export const problemFramingApi = {
 
   getAnalysis: (id: string) =>
     getRequest<FrameworkAnalysisResponse>(`/problem-framing/analyses/${id}`),
+
+  clearHistory: () => deleteRequest<{ deleted_count: number }>("/problem-framing/analyses"),
 };
 
 export const workspaceApi = {
@@ -211,6 +218,8 @@ export const workspaceApi = {
 
   linkRationale: (id: string, req: LinkRationaleRequest) =>
     request<EngagementResponse>(`/workspace/engagements/${id}/link-rationale`, req),
+
+  clearHistory: () => deleteRequest<{ deleted_count: number }>("/workspace/engagements"),
 };
 
 export function triggerBlobDownload(blob: Blob, filename: string): void {

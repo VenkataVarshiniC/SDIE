@@ -67,3 +67,11 @@ class GetFrameworkAnalysisUseCase:
     async def execute(self, analysis_id: UUID, tenant_id: TenantId) -> FrameworkAnalysisResult | None:
         analysis = await self._repository.get(analysis_id, tenant_id)
         return _to_result(analysis) if analysis else None
+
+
+class ClearFrameworkAnalysisHistoryUseCase:
+    def __init__(self, repository: FrameworkAnalysisRepository):
+        self._repository = repository
+
+    async def execute(self, tenant_id: TenantId) -> int:
+        return await self._repository.delete_all_for_tenant(tenant_id)

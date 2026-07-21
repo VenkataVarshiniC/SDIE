@@ -50,6 +50,8 @@ function RecommendationSynthesisPageInner() {
   const [rationales, setRationales] = useState<RationaleResponse[]>([]);
   const [selected, setSelected] = useState<RationaleResponse | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
+  const [clearingHistory, setClearingHistory] = useState(false);
 
   // --- override form ---
   const [overriddenBy, setOverriddenBy] = useState("");
@@ -72,6 +74,23 @@ function RecommendationSynthesisPageInner() {
       .listRationales()
       .then(setRationales)
       .catch((e) => setListError(e instanceof ApiError ? e.detail : "Could not reach the backend."));
+  }
+
+  async function handleClearHistory() {
+    const confirmed = window.confirm("Are you sure you want to delete all analysis history?");
+    if (!confirmed) return;
+
+    setClearingHistory(true);
+    setClearHistoryError(null);
+    try {
+      await recommendationSynthesisApi.clearHistory();
+      setRationales([]);
+      setSelected(null);
+    } catch (e) {
+      setClearHistoryError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
+    } finally {
+      setClearingHistory(false);
+    }
   }
 
   useEffect(() => {
@@ -354,8 +373,22 @@ function RecommendationSynthesisPageInner() {
         </Panel>
 
         <div className="flex flex-col gap-6">
-          <Panel eyebrow="History" title="Rationales">
+          <Panel
+            eyebrow="History"
+            title="Rationales"
+            headerAction={
+              <Button
+                variant="ghost"
+                onClick={handleClearHistory}
+                disabled={clearingHistory || rationales.length === 0}
+                type="button"
+              >
+                {clearingHistory ? "Clearing…" : "Clear History"}
+              </Button>
+            }
+          >
             {listError && <p className="text-signal-down text-sm mb-2">{listError}</p>}
+            {clearHistoryError && <p className="text-signal-down text-sm mb-2">{clearHistoryError}</p>}
             {rationales.length > 0 ? (
               <div className="flex flex-col divide-y divide-ink-border">
                 {rationales.map((r) => (

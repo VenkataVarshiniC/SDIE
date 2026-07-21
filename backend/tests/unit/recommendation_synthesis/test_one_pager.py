@@ -27,6 +27,11 @@ class FakeRepository(DecisionRationaleRepository):
     async def list_for_tenant(self, tenant_id):
         return [self._rationale] if self._rationale else []
 
+    async def delete_all_for_tenant(self, tenant_id):
+        count = 1 if self._rationale else 0
+        self._rationale = None
+        return count
+
 
 class FakeRenderer(OnePagerRendererPort):
     def __init__(self):

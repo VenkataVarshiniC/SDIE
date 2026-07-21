@@ -17,6 +17,12 @@ class DecisionRationaleRepository(ABC):
     @abstractmethod
     async def list_for_tenant(self, tenant_id: TenantId) -> list[DecisionRationale]: ...
 
+    @abstractmethod
+    async def delete_all_for_tenant(self, tenant_id: TenantId) -> int:
+        """Deletes every stored rationale for this tenant. Returns the
+        number of rows deleted."""
+        ...
+
 
 class OnePagerRendererPort(ABC):
     """Renders a DecisionRationale into a board-ready one-page PDF. An

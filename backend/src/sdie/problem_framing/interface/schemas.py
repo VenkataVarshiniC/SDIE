@@ -25,3 +25,7 @@ class FrameworkAnalysisResponse(BaseModel):
     entries: dict[str, list[str]]
     completion_ratio: float
     created_at: datetime
+
+
+class ClearHistoryResponse(BaseModel):
+    deleted_count: int

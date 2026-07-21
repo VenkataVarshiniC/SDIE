@@ -23,3 +23,9 @@ class DocumentRepository(ABC):
         Ranking (ts_rank) is a Postgres-native operation, hence this lives
         behind the port rather than in the domain layer."""
         ...
+
+    @abstractmethod
+    async def delete_all_for_tenant(self, tenant_id: TenantId) -> int:
+        """Deletes every ingested document for this tenant. Returns the
+        number of rows deleted."""
+        ...

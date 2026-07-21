@@ -27,6 +27,8 @@ function ProblemFramingPageInner() {
   const [analyses, setAnalyses] = useState<FrameworkAnalysisResponse[]>([]);
   const [selected, setSelected] = useState<FrameworkAnalysisResponse | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
+  const [clearingHistory, setClearingHistory] = useState(false);
 
   function loadTemplate(fw: Framework) {
     setTemplateError(null);
@@ -45,6 +47,23 @@ function ProblemFramingPageInner() {
       .listAnalyses()
       .then(setAnalyses)
       .catch((e) => setListError(e instanceof ApiError ? e.detail : "Could not reach the backend."));
+  }
+
+  async function handleClearHistory() {
+    const confirmed = window.confirm("Are you sure you want to delete all analysis history?");
+    if (!confirmed) return;
+
+    setClearingHistory(true);
+    setClearHistoryError(null);
+    try {
+      await problemFramingApi.clearHistory();
+      setAnalyses([]);
+      setSelected(null);
+    } catch (e) {
+      setClearHistoryError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
+    } finally {
+      setClearingHistory(false);
+    }
   }
 
   useEffect(() => {
@@ -203,8 +222,22 @@ function ProblemFramingPageInner() {
         </Panel>
 
         <div className="flex flex-col gap-6">
-          <Panel eyebrow="History" title="Past analyses">
+          <Panel
+            eyebrow="History"
+            title="Past analyses"
+            headerAction={
+              <Button
+                variant="ghost"
+                onClick={handleClearHistory}
+                disabled={clearingHistory || analyses.length === 0}
+                type="button"
+              >
+                {clearingHistory ? "Clearing…" : "Clear History"}
+              </Button>
+            }
+          >
             {listError && <p className="text-signal-down text-sm mb-2">{listError}</p>}
+            {clearHistoryError && <p className="text-signal-down text-sm mb-2">{clearHistoryError}</p>}
             {analyses.length > 0 ? (
               <div className="flex flex-col divide-y divide-ink-border">
                 {analyses.map((a) => (

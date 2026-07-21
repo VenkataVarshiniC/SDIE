@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sdie.problem_framing.application.dto import CreateFrameworkAnalysisCommand
 from sdie.problem_framing.application.use_cases import (
+    ClearFrameworkAnalysisHistoryUseCase,
     CreateFrameworkAnalysisUseCase,
     GetFrameworkAnalysisUseCase,
     GetFrameworkTemplateUseCase,
@@ -15,6 +16,7 @@ from sdie.problem_framing.application.use_cases import (
 from sdie.problem_framing.domain.entities import ProblemFramingError
 from sdie.problem_framing.infrastructure.repository import SqlAlchemyFrameworkAnalysisRepository
 from sdie.problem_framing.interface.schemas import (
+    ClearHistoryResponse,
     CreateFrameworkAnalysisRequest,
     FrameworkAnalysisResponse,
     FrameworkSectionSchema,
@@ -88,6 +90,20 @@ async def list_analyses(
     repository = SqlAlchemyFrameworkAnalysisRepository(session)
     results = await ListFrameworkAnalysesUseCase(repository).execute(TenantId(principal.tenant_id))
     return [_to_response(r) for r in results]
+
+
+@router.delete("/analyses", response_model=ClearHistoryResponse)
+async def clear_analysis_history(
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> ClearHistoryResponse:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyFrameworkAnalysisRepository(session)
+    deleted_count = await ClearFrameworkAnalysisHistoryUseCase(repository).execute(
+        TenantId(principal.tenant_id)
+    )
+    await session.commit()
+    return ClearHistoryResponse(deleted_count=deleted_count)
 
 
 @router.get("/analyses/{analysis_id}", response_model=FrameworkAnalysisResponse)

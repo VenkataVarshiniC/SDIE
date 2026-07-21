@@ -61,3 +61,36 @@ class TestEngagementRepository:
         reloaded = await repo.get(engagement.id, tenant_id)
         assert reloaded is not None
         assert reloaded.status == EngagementStatus.QUANT_ANALYSIS
+
+    async def test_delete_all_for_tenant_removes_only_that_tenant(self, db_session, tenant_id):
+        from sdie.shared_kernel.domain.value_objects import TenantId
+        from sdie.shared_kernel.infrastructure.database import set_tenant_context
+
+        repo = SqlAlchemyEngagementRepository(db_session)
+
+        await set_tenant_context(db_session, tenant_id.value)
+        mine = Engagement.create(tenant_id=tenant_id, title="Mine")
+        await repo.save(mine)
+
+        other_tenant = TenantId(uuid.uuid4())
+        await set_tenant_context(db_session, other_tenant.value)
+        theirs = Engagement.create(tenant_id=other_tenant, title="Theirs")
+        await repo.save(theirs)
+
+        await set_tenant_context(db_session, tenant_id.value)
+        deleted_count = await repo.delete_all_for_tenant(tenant_id)
+        assert deleted_count == 1
+
+        remaining = await repo.list_for_tenant(tenant_id)
+        assert remaining == []
+
+        await set_tenant_context(db_session, other_tenant.value)
+        others_remaining = await repo.list_for_tenant(other_tenant)
+        assert len(others_remaining) == 1
+
+    async def test_delete_all_for_tenant_returns_zero_when_nothing_to_delete(
+        self, tenant_scoped_session, tenant_id
+    ):
+        repo = SqlAlchemyEngagementRepository(tenant_scoped_session)
+        deleted_count = await repo.delete_all_for_tenant(tenant_id)
+        assert deleted_count == 0

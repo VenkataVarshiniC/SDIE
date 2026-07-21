@@ -1,7 +1,9 @@
 {
   "/page": "app/page.js",
   "/dashboard/workspace/page": "app/dashboard/workspace/page.js",
-  "/dashboard/workspace/[id]/page": "app/dashboard/workspace/[id]/page.js",
+  "/dashboard/decision-analysis/page": "app/dashboard/decision-analysis/page.js",
+  "/dashboard/evidence-research/page": "app/dashboard/evidence-research/page.js",
   "/dashboard/recommendation-synthesis/page": "app/dashboard/recommendation-synthesis/page.js",
-  "/dashboard/problem-framing/page": "app/dashboard/problem-framing/page.js"
+  "/dashboard/problem-framing/page": "app/dashboard/problem-framing/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }

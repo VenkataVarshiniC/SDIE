@@ -13,6 +13,7 @@ from sdie.recommendation_synthesis.application.dto import (
     OverrideRationaleCommand,
 )
 from sdie.recommendation_synthesis.application.use_cases import (
+    ClearRationaleHistoryUseCase,
     CreateRationaleUseCase,
     GenerateNarrativeUseCase,
     GenerateOnePagerUseCase,
@@ -26,6 +27,7 @@ from sdie.recommendation_synthesis.infrastructure.repository import (
     SqlAlchemyDecisionRationaleRepository,
 )
 from sdie.recommendation_synthesis.interface.schemas import (
+    ClearHistoryResponse,
     CreateRationaleRequest,
     EvidenceCitationSchema,
     NarrativeResponse,
@@ -123,6 +125,18 @@ async def list_rationales(
     repository = SqlAlchemyDecisionRationaleRepository(session)
     results = await ListRationalesUseCase(repository).execute(TenantId(principal.tenant_id))
     return [_to_response(r) for r in results]
+
+
+@router.delete("/rationales", response_model=ClearHistoryResponse)
+async def clear_rationale_history(
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> ClearHistoryResponse:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyDecisionRationaleRepository(session)
+    deleted_count = await ClearRationaleHistoryUseCase(repository).execute(TenantId(principal.tenant_id))
+    await session.commit()
+    return ClearHistoryResponse(deleted_count=deleted_count)
 
 
 @router.get("/rationales/{rationale_id}", response_model=RationaleResponse)

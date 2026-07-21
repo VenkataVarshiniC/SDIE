@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sdie.evidence_research.application.ports import DocumentRepository
@@ -111,3 +111,9 @@ class SqlAlchemyDocumentRepository(DocumentRepository):
         )
         doc.__post_init__()
         return doc
+
+    async def delete_all_for_tenant(self, tenant_id: TenantId) -> int:
+        stmt = delete(DocumentORM).where(DocumentORM.tenant_id == tenant_id.value)
+        result = await self._session.execute(stmt)
+        await self._session.flush()
+        return result.rowcount or 0

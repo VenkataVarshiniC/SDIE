@@ -72,3 +72,11 @@ class SearchEvidenceUseCase:
             )
             for c in citations
         ]
+
+
+class ClearEvidenceHistoryUseCase:
+    def __init__(self, repository: DocumentRepository):
+        self._repository = repository
+
+    async def execute(self, tenant_id: TenantId) -> int:
+        return await self._repository.delete_all_for_tenant(tenant_id)

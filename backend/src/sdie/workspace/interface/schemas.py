@@ -40,3 +40,7 @@ class LinkDecisionAnalysisRequest(BaseModel):
 
 class LinkRationaleRequest(BaseModel):
     rationale_id: UUID
+
+
+class ClearHistoryResponse(BaseModel):
+    deleted_count: int

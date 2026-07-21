@@ -16,3 +16,9 @@ class EngagementRepository(ABC):
 
     @abstractmethod
     async def list_for_tenant(self, tenant_id: TenantId) -> list[Engagement]: ...
+
+    @abstractmethod
+    async def delete_all_for_tenant(self, tenant_id: TenantId) -> int:
+        """Deletes every stored engagement for this tenant. Returns the
+        number of rows deleted."""
+        ...

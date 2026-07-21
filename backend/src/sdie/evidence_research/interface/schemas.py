@@ -30,3 +30,7 @@ class CitationResponse(BaseModel):
     source_label: str
     excerpt: str
     relevance_score: float
+
+
+class ClearHistoryResponse(BaseModel):
+    deleted_count: int

@@ -52,3 +52,7 @@ class OverrideRationaleRequest(BaseModel):
 class NarrativeResponse(BaseModel):
     rationale_id: UUID
     narrative: str
+
+
+class ClearHistoryResponse(BaseModel):
+    deleted_count: int

@@ -26,6 +26,7 @@ from sdie.workspace.application.dto import (
 )
 from sdie.workspace.application.use_cases import (
     AddEvidenceUseCase,
+    ClearEngagementHistoryUseCase,
     CreateEngagementUseCase,
     GetEngagementUseCase,
     LinkDecisionAnalysisUseCase,
@@ -38,6 +39,7 @@ from sdie.workspace.domain.entities import WorkspaceError
 from sdie.workspace.infrastructure.repository import SqlAlchemyEngagementRepository
 from sdie.workspace.interface.schemas import (
     AddEvidenceRequest,
+    ClearHistoryResponse,
     CreateEngagementRequest,
     EngagementResponse,
     LinkDecisionAnalysisRequest,
@@ -94,6 +96,18 @@ async def list_engagements(
     repository = SqlAlchemyEngagementRepository(session)
     results = await ListEngagementsUseCase(repository).execute(TenantId(principal.tenant_id))
     return [_to_response(r) for r in results]
+
+
+@router.delete("/engagements", response_model=ClearHistoryResponse)
+async def clear_engagement_history(
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> ClearHistoryResponse:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyEngagementRepository(session)
+    deleted_count = await ClearEngagementHistoryUseCase(repository).execute(TenantId(principal.tenant_id))
+    await session.commit()
+    return ClearHistoryResponse(deleted_count=deleted_count)
 
 
 @router.get("/engagements/{engagement_id}", response_model=EngagementResponse)

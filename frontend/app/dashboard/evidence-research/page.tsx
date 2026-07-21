@@ -21,6 +21,8 @@ function EvidenceResearchPageInner() {
 
   const [documents, setDocuments] = useState<DocumentResponse[]>([]);
   const [documentsError, setDocumentsError] = useState<string | null>(null);
+  const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
+  const [clearingHistory, setClearingHistory] = useState(false);
 
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState("5");
@@ -38,6 +40,22 @@ function EvidenceResearchPageInner() {
   useEffect(() => {
     refreshDocuments();
   }, []);
+
+  async function handleClearHistory() {
+    const confirmed = window.confirm("Are you sure you want to delete all analysis history?");
+    if (!confirmed) return;
+
+    setClearingHistory(true);
+    setClearHistoryError(null);
+    try {
+      await evidenceResearchApi.clearHistory();
+      setDocuments([]);
+    } catch (e) {
+      setClearHistoryError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
+    } finally {
+      setClearingHistory(false);
+    }
+  }
 
   async function ingest() {
     setIngesting(true);
@@ -179,8 +197,22 @@ function EvidenceResearchPageInner() {
             </div>
           </Panel>
 
-          <Panel eyebrow="Library" title="Ingested documents">
+          <Panel
+            eyebrow="Library"
+            title="Ingested documents"
+            headerAction={
+              <Button
+                variant="ghost"
+                onClick={handleClearHistory}
+                disabled={clearingHistory || documents.length === 0}
+                type="button"
+              >
+                {clearingHistory ? "Clearing…" : "Clear History"}
+              </Button>
+            }
+          >
             {documentsError && <p className="text-signal-down text-sm mb-2">{documentsError}</p>}
+            {clearHistoryError && <p className="text-signal-down text-sm mb-2">{clearHistoryError}</p>}
             {documents.length > 0 ? (
               <div className="flex flex-col divide-y divide-ink-border">
                 {documents.map((d) => (

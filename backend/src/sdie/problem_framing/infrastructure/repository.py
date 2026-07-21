@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sdie.problem_framing.application.ports import FrameworkAnalysisRepository
@@ -45,6 +45,12 @@ class SqlAlchemyFrameworkAnalysisRepository(FrameworkAnalysisRepository):
         )
         result = await self._session.execute(stmt)
         return [self._to_domain(row) for row in result.scalars().all()]
+
+    async def delete_all_for_tenant(self, tenant_id: TenantId) -> int:
+        stmt = delete(FrameworkAnalysisORM).where(FrameworkAnalysisORM.tenant_id == tenant_id.value)
+        result = await self._session.execute(stmt)
+        await self._session.flush()
+        return result.rowcount or 0
 
     @staticmethod
     def _to_domain(row: FrameworkAnalysisORM) -> FrameworkAnalysis:

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sdie.evidence_research.application.dto import IngestDocumentCommand, SearchEvidenceQuery
 from sdie.evidence_research.application.use_cases import (
+    ClearEvidenceHistoryUseCase,
     IngestDocumentUseCase,
     ListDocumentsUseCase,
     SearchEvidenceUseCase,
@@ -13,6 +14,7 @@ from sdie.evidence_research.domain.entities import EvidenceResearchError
 from sdie.evidence_research.infrastructure.repository import SqlAlchemyDocumentRepository
 from sdie.evidence_research.interface.schemas import (
     CitationResponse,
+    ClearHistoryResponse,
     DocumentResponse,
     IngestDocumentRequest,
     SearchEvidenceRequest,
@@ -71,6 +73,18 @@ async def list_documents(
         )
         for r in results
     ]
+
+
+@router.delete("/documents", response_model=ClearHistoryResponse)
+async def clear_document_history(
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> ClearHistoryResponse:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyDocumentRepository(session)
+    deleted_count = await ClearEvidenceHistoryUseCase(repository).execute(TenantId(principal.tenant_id))
+    await session.commit()
+    return ClearHistoryResponse(deleted_count=deleted_count)
 
 
 @router.post("/search", response_model=list[CitationResponse])

@@ -16,3 +16,9 @@ class FrameworkAnalysisRepository(ABC):
 
     @abstractmethod
     async def list_for_tenant(self, tenant_id: TenantId) -> list[FrameworkAnalysis]: ...
+
+    @abstractmethod
+    async def delete_all_for_tenant(self, tenant_id: TenantId) -> int:
+        """Deletes every stored framework analysis for this tenant. Returns
+        the number of rows deleted."""
+        ...

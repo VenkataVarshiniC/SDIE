@@ -129,6 +129,14 @@ class ListRationalesUseCase:
         return [_to_result(r) for r in rationales]
 
 
+class ClearRationaleHistoryUseCase:
+    def __init__(self, repository: DecisionRationaleRepository):
+        self._repository = repository
+
+    async def execute(self, tenant_id: TenantId) -> int:
+        return await self._repository.delete_all_for_tenant(tenant_id)
+
+
 class GenerateOnePagerUseCase:
     """Produces the actual client-facing deliverable — a one-page PDF memo
     — from a DecisionRationale. `supporting_data` is an optional dict the

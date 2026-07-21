@@ -76,3 +76,40 @@ class TestDocumentRepository:
 
         citations = await repo.search(tenant_id, "quantum computing blockchain", limit=5)
         assert citations == []
+
+    async def test_delete_all_for_tenant_removes_only_that_tenant(self, db_session, tenant_id):
+        from sdie.shared_kernel.domain.value_objects import TenantId
+        from sdie.shared_kernel.infrastructure.database import set_tenant_context
+
+        repo = SqlAlchemyDocumentRepository(db_session)
+
+        await set_tenant_context(db_session, tenant_id.value)
+        mine = Document.create(
+            tenant_id=tenant_id, title="Mine", source_label="Internal", content="My content"
+        )
+        await repo.save(mine)
+
+        other_tenant = TenantId(uuid.uuid4())
+        await set_tenant_context(db_session, other_tenant.value)
+        theirs = Document.create(
+            tenant_id=other_tenant, title="Theirs", source_label="Internal", content="Their content"
+        )
+        await repo.save(theirs)
+
+        await set_tenant_context(db_session, tenant_id.value)
+        deleted_count = await repo.delete_all_for_tenant(tenant_id)
+        assert deleted_count == 1
+
+        remaining = await repo.list_for_tenant(tenant_id)
+        assert remaining == []
+
+        await set_tenant_context(db_session, other_tenant.value)
+        others_remaining = await repo.list_for_tenant(other_tenant)
+        assert len(others_remaining) == 1
+
+    async def test_delete_all_for_tenant_returns_zero_when_nothing_to_delete(
+        self, tenant_scoped_session, tenant_id
+    ):
+        repo = SqlAlchemyDocumentRepository(tenant_scoped_session)
+        deleted_count = await repo.delete_all_for_tenant(tenant_id)
+        assert deleted_count == 0

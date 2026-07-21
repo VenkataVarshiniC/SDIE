@@ -16,10 +16,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/workspace/page.js"
     ],
-    "/dashboard/workspace/[id]/page": [
+    "/dashboard/decision-analysis/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/workspace/[id]/page.js"
+      "static/chunks/app/dashboard/decision-analysis/page.js"
+    ],
+    "/dashboard/evidence-research/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/evidence-research/page.js"
     ],
     "/dashboard/recommendation-synthesis/page": [
       "static/chunks/webpack.js",
@@ -30,6 +35,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/problem-framing/page.js"
+    ],
+    "/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/page.js"
     ]
   }
 }

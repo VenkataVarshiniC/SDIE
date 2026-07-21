@@ -82,6 +82,14 @@ class ListEngagementsUseCase:
         return [_to_result(e) for e in engagements]
 
 
+class ClearEngagementHistoryUseCase:
+    def __init__(self, repository: EngagementRepository):
+        self._repository = repository
+
+    async def execute(self, tenant_id: TenantId) -> int:
+        return await self._repository.delete_all_for_tenant(tenant_id)
+
+
 class LinkProblemFramingUseCase:
     def __init__(
         self,

@@ -19,6 +19,8 @@ const STATUS_LABEL: Record<string, string> = {
 export default function WorkspacePage() {
   const [engagements, setEngagements] = useState<EngagementResponse[]>([]);
   const [listError, setListError] = useState<string | null>(null);
+  const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
+  const [clearingHistory, setClearingHistory] = useState(false);
 
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
@@ -46,6 +48,22 @@ export default function WorkspacePage() {
       setCreateError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleClearHistory() {
+    const confirmed = window.confirm("Are you sure you want to delete all analysis history?");
+    if (!confirmed) return;
+
+    setClearingHistory(true);
+    setClearHistoryError(null);
+    try {
+      await workspaceApi.clearHistory();
+      setEngagements([]);
+    } catch (e) {
+      setClearHistoryError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
+    } finally {
+      setClearingHistory(false);
     }
   }
 
@@ -82,8 +100,22 @@ export default function WorkspacePage() {
         {createError && <p className="text-signal-down text-sm mt-2">{createError}</p>}
       </Panel>
 
-      <Panel eyebrow="History" title="Engagements">
+      <Panel
+        eyebrow="History"
+        title="Engagements"
+        headerAction={
+          <Button
+            variant="ghost"
+            onClick={handleClearHistory}
+            disabled={clearingHistory || engagements.length === 0}
+            type="button"
+          >
+            {clearingHistory ? "Clearing…" : "Clear History"}
+          </Button>
+        }
+      >
         {listError && <p className="text-signal-down text-sm mb-2">{listError}</p>}
+        {clearHistoryError && <p className="text-signal-down text-sm mb-2">{clearHistoryError}</p>}
         {engagements.length > 0 ? (
           <div className="flex flex-col divide-y divide-ink-border">
             {engagements.map((e) => (
