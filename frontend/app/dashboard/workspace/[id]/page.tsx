@@ -67,6 +67,8 @@ export default function EngagementDetailPage() {
   const [rationale, setRationale] = useState<RationaleResponse | null>(null);
   const [downloadingOnePager, setDownloadingOnePager] = useState(false);
   const [onePagerError, setOnePagerError] = useState<string | null>(null);
+  const [downloadingDeck, setDownloadingDeck] = useState(false);
+  const [deckError, setDeckError] = useState<string | null>(null);
 
   useEffect(() => {
     workspaceApi
@@ -99,6 +101,20 @@ export default function EngagementDetailPage() {
     }
   }
 
+  async function downloadDeck() {
+    if (!engagement) return;
+    setDownloadingDeck(true);
+    setDeckError(null);
+    try {
+      const blob = await workspaceApi.downloadDeck(engagement.engagement_id);
+      triggerBlobDownload(blob, `case-deck-${engagement.engagement_id}.pdf`);
+    } catch (e) {
+      setDeckError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
+    } finally {
+      setDownloadingDeck(false);
+    }
+  }
+
   if (error) {
     return (
       <div className="flex flex-col gap-4">
@@ -123,15 +139,26 @@ export default function EngagementDetailPage() {
     <div className="flex flex-col gap-6">
       <BackLink />
 
-      <div>
-        <span className="text-[11px] uppercase tracking-wider text-ledger">Engagement</span>
-        <h1 className="font-display text-[28px] mt-1">{engagement.title}</h1>
-        <p className="text-muted text-sm mt-1">
-          Status:{" "}
-          <span className="text-ledger font-data">
-            {engagement.status.replace(/_/g, " ")}
-          </span>
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <span className="text-[11px] uppercase tracking-wider text-ledger">Engagement</span>
+          <h1 className="font-display text-[28px] mt-1">{engagement.title}</h1>
+          <p className="text-muted text-sm mt-1">
+            Status:{" "}
+            <span className="text-ledger font-data">
+              {engagement.status.replace(/_/g, " ")}
+            </span>
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <Button variant="ghost" onClick={downloadDeck} disabled={downloadingDeck} type="button">
+            <span className="inline-flex items-center gap-1.5">
+              <Download size={14} />
+              {downloadingDeck ? "Preparing…" : "Download full case deck"}
+            </span>
+          </Button>
+          {deckError && <p className="text-signal-down text-xs max-w-xs text-right">{deckError}</p>}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">

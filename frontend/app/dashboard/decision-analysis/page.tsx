@@ -47,6 +47,8 @@ function DecisionAnalysisPageInner() {
   const [recentAnalyses, setRecentAnalyses] = useState<AnalysisSummary[]>([]);
   const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
   const [clearingHistory, setClearingHistory] = useState(false);
+  const [historyNotice, setHistoryNotice] = useState<string | null>(null);
+  const [loadedFromHistory, setLoadedFromHistory] = useState(false);
   const pathname = usePathname();
 
   const refreshHistory = useCallback(() => {
@@ -103,6 +105,7 @@ function DecisionAnalysisPageInner() {
         })),
       });
       setResult(res);
+      setLoadedFromHistory(false);
       refreshHistory();
 
       if (engagementId) {
@@ -136,6 +139,35 @@ function DecisionAnalysisPageInner() {
   const chartData = result
     ? result.rankings.map((r) => ({ name: r.option, score: r.weighted_score }))
     : [];
+
+  function loadAnalysisFromHistory(a: AnalysisSummary) {
+    setHistoryNotice(null);
+    if (a.method !== "mcda_weighted_sum") {
+      setHistoryNotice(
+        `"${a.title}" was a ${a.method.replace(/_/g, " ")} analysis — view it on the ` +
+          `${a.method === "monte_carlo" ? "Monte Carlo" : "Decision Tree"} page instead.`,
+      );
+      return;
+    }
+    const rankings = (a.result_data.rankings as RankOptionsResponse["rankings"] | undefined) ?? [];
+    setResult({
+      analysis_id: a.analysis_id,
+      rankings,
+      recommended_option: a.recommended_option,
+      weight_robustness: [],
+      flags: [],
+    });
+    setLoadedFromHistory(true);
+  }
+
+  function viewLastAnalysis() {
+    const lastMcda = recentAnalyses.find((a) => a.method === "mcda_weighted_sum");
+    if (!lastMcda) {
+      setHistoryNotice("No past MCDA ranking found yet — run one above first.");
+      return;
+    }
+    loadAnalysisFromHistory(lastMcda);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -242,9 +274,24 @@ function DecisionAnalysisPageInner() {
           </div>
         </Panel>
 
-        <Panel eyebrow="Output" title="Ranking">
+        <Panel
+          eyebrow="Output"
+          title="Ranking"
+          headerAction={
+            <Button variant="ghost" onClick={viewLastAnalysis} type="button">
+              View last analysis
+            </Button>
+          }
+        >
+          {historyNotice && <p className="text-signal-down text-sm mb-3">{historyNotice}</p>}
           {result ? (
             <div className="flex flex-col gap-6">
+              {loadedFromHistory && (
+                <p className="text-xs text-ledger bg-ink-2 border border-ledger/40 rounded-sm px-3 py-2 w-fit">
+                  Loaded from history — robustness and flags aren't shown for past runs since
+                  they're computed at run time, not stored.
+                </p>
+              )}
               <div>
                 <span className="text-[11px] uppercase tracking-wider text-muted">Recommended</span>
                 <p className="font-display text-[22px] text-ledger mt-1">
@@ -324,7 +371,12 @@ function DecisionAnalysisPageInner() {
         {recentAnalyses.length > 0 ? (
           <div className="flex flex-col divide-y divide-ink-border">
             {recentAnalyses.map((a) => (
-              <div key={a.analysis_id} className="py-3 flex items-center justify-between gap-4">
+              <button
+                key={a.analysis_id}
+                type="button"
+                onClick={() => loadAnalysisFromHistory(a)}
+                className="w-full py-3 flex items-center justify-between gap-4 text-left hover:bg-ink-2 transition-colors -mx-2 px-2 rounded-sm"
+              >
                 <div>
                   <p className="text-sm text-parchment">{a.title}</p>
                   <p className="text-xs text-muted">
@@ -332,7 +384,7 @@ function DecisionAnalysisPageInner() {
                   </p>
                 </div>
                 <span className="text-sm text-ledger font-data">{a.recommended_option}</span>
-              </div>
+              </button>
             ))}
           </div>
         ) : (

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/dashboard", label: "Financial modeling" },
   { href: "/dashboard/decision-analysis", label: "Decision analysis" },
-  { href: "/dashboard/evidence-research", label: "Evidence research" },
+    { href: "/dashboard/evidence-research", label: "Evidence research" },
   { href: "/dashboard/recommendation-synthesis", label: "Recommendation synthesis" },
   { href: "/dashboard/problem-framing", label: "Problem framing" },
 ];

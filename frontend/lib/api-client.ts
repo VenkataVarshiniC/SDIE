@@ -7,6 +7,7 @@ import type {
   CreateEngagementRequest,
   CreateFrameworkAnalysisRequest,
   CreateRationaleRequest,
+  DocumentDetailResponse,
   DocumentResponse,
   EngagementResponse,
   EvaluateDecisionTreeRequest,
@@ -118,6 +119,21 @@ async function getBlobRequest(path: string): Promise<Blob> {
   return res.blob();
 }
 
+async function postFormData<TResponse>(path: string, formData: FormData): Promise<TResponse> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: devPrincipalHeaders(), // no Content-Type — the browser sets the multipart boundary
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new ApiError(res.status, payload.detail ?? "Request failed");
+  }
+
+  return res.json() as Promise<TResponse>;
+}
+
 export const financialModelingApi = {
   createCashFlowModel: (req: CreateCashFlowModelRequest) =>
     request<CashFlowModelResponse>("/financial-modeling/cash-flow-models", req),
@@ -151,7 +167,18 @@ export const evidenceResearchApi = {
   ingestDocument: (req: IngestDocumentRequest) =>
     request<DocumentResponse>("/evidence-research/documents", req),
 
+  ingestPdf: (title: string, sourceLabel: string, file: File) => {
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("source_label", sourceLabel);
+    formData.append("file", file);
+    return postFormData<DocumentResponse>("/evidence-research/documents/upload-pdf", formData);
+  },
+
   listDocuments: () => getRequest<DocumentResponse[]>("/evidence-research/documents"),
+
+  getDocument: (id: string) =>
+    getRequest<DocumentDetailResponse>(`/evidence-research/documents/${id}`),
 
   searchEvidence: (req: SearchEvidenceRequest) =>
     request<CitationResponse[]>("/evidence-research/search", req),
@@ -220,6 +247,8 @@ export const workspaceApi = {
     request<EngagementResponse>(`/workspace/engagements/${id}/link-rationale`, req),
 
   clearHistory: () => deleteRequest<{ deleted_count: number }>("/workspace/engagements"),
+
+  downloadDeck: (id: string) => getBlobRequest(`/workspace/engagements/${id}/deck`),
 };
 
 export function triggerBlobDownload(blob: Blob, filename: string): void {

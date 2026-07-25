@@ -144,6 +144,13 @@ strict sequence. `COMPLETE` is the one enforced rule: it requires both a rationa
 least one quant analysis backing it. See the docstring on `Engagement` in
 `workspace/domain/entities.py` for the full reasoning.
 
+`GET /workspace/engagements/{id}/deck` generates the full case deck: a multi-section PDF
+(Situation → Evidence → Quant Analysis → Recommendation) compiled from whatever's actually
+been linked to the engagement — sections for unlinked stages are simply omitted, so a
+partially-complete engagement still produces a sensible deck. This is the natural evolution of
+`recommendation_synthesis`'s one-pager: that covers a single rationale, this covers the whole
+engagement. "Download full case deck" is available directly on the engagement detail page.
+
 ## What's next
 
 Real auth (OIDC/JWT replacing the header stub) is the biggest remaining gap before this

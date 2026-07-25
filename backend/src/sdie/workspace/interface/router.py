@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sdie.decision_analysis.infrastructure.repository import SqlAlchemyDecisionAnalysisRepository
 from sdie.evidence_research.infrastructure.repository import SqlAlchemyDocumentRepository
+from sdie.financial_modeling.application.use_cases import GetCashFlowModelUseCase
 from sdie.financial_modeling.infrastructure.repository import SqlAlchemyCashFlowModelRepository
 from sdie.problem_framing.infrastructure.repository import SqlAlchemyFrameworkAnalysisRepository
 from sdie.recommendation_synthesis.infrastructure.repository import (
@@ -19,15 +20,22 @@ from sdie.shared_kernel.infrastructure.event_bus import get_event_bus
 from sdie.workspace.application.dto import (
     AddEvidenceCommand,
     CreateEngagementCommand,
+    DecisionAnalysisDeckSection,
+    EngagementDeckData,
+    EvidenceDocumentSummary,
+    FinancialModelDeckSection,
     LinkDecisionAnalysisCommand,
     LinkFinancialModelCommand,
     LinkProblemFramingCommand,
     LinkRationaleCommand,
+    ProblemFramingDeckSection,
+    SynthesisDeckSection,
 )
 from sdie.workspace.application.use_cases import (
     AddEvidenceUseCase,
     ClearEngagementHistoryUseCase,
     CreateEngagementUseCase,
+    GenerateEngagementDeckUseCase,
     GetEngagementUseCase,
     LinkDecisionAnalysisUseCase,
     LinkFinancialModelUseCase,
@@ -36,6 +44,7 @@ from sdie.workspace.application.use_cases import (
     ListEngagementsUseCase,
 )
 from sdie.workspace.domain.entities import WorkspaceError
+from sdie.workspace.infrastructure.deck_renderer_provider import get_engagement_deck_renderer
 from sdie.workspace.infrastructure.repository import SqlAlchemyEngagementRepository
 from sdie.workspace.interface.schemas import (
     AddEvidenceRequest,
@@ -247,3 +256,147 @@ async def link_rationale(
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return _to_response(result)
+
+
+def _truncate(text: str, max_chars: int = 320) -> str:
+    text = text.strip()
+    return text if len(text) <= max_chars else text[:max_chars].rstrip() + "\u2026"
+
+
+@router.get("/engagements/{engagement_id}/deck")
+async def generate_engagement_deck(
+    engagement_id: UUID,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """Generates the full multi-section case deck for an engagement. This
+    is the one workspace endpoint allowed to reach into all five other
+    contexts' repositories directly — composing across contexts for a
+    presentation artifact is an interface-layer responsibility (see the
+    identical reasoning on recommendation_synthesis's one-pager endpoint).
+    Sections for stages that aren't linked yet are simply omitted."""
+    await set_tenant_context(session, principal.tenant_id)
+    tenant_id = TenantId(principal.tenant_id)
+
+    engagement_repository = SqlAlchemyEngagementRepository(session)
+    engagement = await GetEngagementUseCase(engagement_repository).execute(engagement_id, tenant_id)
+    if engagement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Engagement not found")
+
+    deck_data = EngagementDeckData()
+
+    if engagement.problem_framing_analysis_id:
+        analysis = await SqlAlchemyFrameworkAnalysisRepository(session).get(
+            engagement.problem_framing_analysis_id, tenant_id
+        )
+        if analysis is not None:
+            deck_data = EngagementDeckData(
+                problem_framing=ProblemFramingDeckSection(
+                    title=analysis.title,
+                    framework=analysis.framework.value,
+                    entries=analysis.entries,
+                    completion_ratio=analysis.completion_ratio,
+                ),
+                evidence_documents=deck_data.evidence_documents,
+                financial_model=deck_data.financial_model,
+                decision_analysis=deck_data.decision_analysis,
+                synthesis=deck_data.synthesis,
+            )
+
+    if engagement.evidence_document_ids:
+        document_repository = SqlAlchemyDocumentRepository(session)
+        summaries = []
+        for document_id in engagement.evidence_document_ids:
+            document = await document_repository.get(document_id, tenant_id)
+            if document is not None:
+                summaries.append(
+                    EvidenceDocumentSummary(
+                        title=document.title,
+                        source_label=document.source_label,
+                        excerpt=_truncate(document.content),
+                    )
+                )
+        deck_data = EngagementDeckData(
+            problem_framing=deck_data.problem_framing,
+            evidence_documents=summaries,
+            financial_model=deck_data.financial_model,
+            decision_analysis=deck_data.decision_analysis,
+            synthesis=deck_data.synthesis,
+        )
+
+    if engagement.financial_model_id:
+        model_result = await GetCashFlowModelUseCase(
+            SqlAlchemyCashFlowModelRepository(session)
+        ).execute(engagement.financial_model_id, tenant_id)
+        if model_result is not None:
+            deck_data = EngagementDeckData(
+                problem_framing=deck_data.problem_framing,
+                evidence_documents=deck_data.evidence_documents,
+                financial_model=FinancialModelDeckSection(
+                    project_name=model_result.project_name,
+                    npv=f"{model_result.currency} {model_result.npv:,.0f}",
+                    irr_percent=f"{model_result.irr_percent:.1f}%" if model_result.irr_percent else None,
+                    payback_period=(
+                        f"{model_result.payback_period:.1f} yrs" if model_result.payback_period else None
+                    ),
+                    flags=model_result.flags,
+                ),
+                decision_analysis=deck_data.decision_analysis,
+                synthesis=deck_data.synthesis,
+            )
+
+    if engagement.decision_analysis_id:
+        analysis = await SqlAlchemyDecisionAnalysisRepository(session).get(
+            engagement.decision_analysis_id, tenant_id
+        )
+        if analysis is not None:
+            deck_data = EngagementDeckData(
+                problem_framing=deck_data.problem_framing,
+                evidence_documents=deck_data.evidence_documents,
+                financial_model=deck_data.financial_model,
+                decision_analysis=DecisionAnalysisDeckSection(
+                    title=analysis.title,
+                    method=analysis.method,
+                    recommended_option=analysis.recommended_option or "",
+                    result_data=analysis.result_data,
+                ),
+                synthesis=deck_data.synthesis,
+            )
+
+    if engagement.rationale_id:
+        rationale = await SqlAlchemyDecisionRationaleRepository(session).get(
+            engagement.rationale_id, tenant_id
+        )
+        if rationale is not None:
+            deck_data = EngagementDeckData(
+                problem_framing=deck_data.problem_framing,
+                evidence_documents=deck_data.evidence_documents,
+                financial_model=deck_data.financial_model,
+                decision_analysis=deck_data.decision_analysis,
+                synthesis=SynthesisDeckSection(
+                    title=rationale.title,
+                    recommended_option=rationale.recommended_option,
+                    current_recommendation=rationale.current_recommendation,
+                    confidence_note=rationale.confidence_note,
+                    evidence_citations=[
+                        EvidenceDocumentSummary(
+                            title=c.document_title, source_label=c.source_label, excerpt=c.excerpt
+                        )
+                        for c in rationale.evidence_citations
+                    ],
+                    override_count=len(rationale.overrides),
+                ),
+            )
+
+    use_case = GenerateEngagementDeckUseCase(engagement_repository, get_engagement_deck_renderer())
+    try:
+        pdf_bytes = await use_case.execute(engagement_id, tenant_id, deck_data)
+    except WorkspaceError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    filename = f"case-deck-{engagement_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

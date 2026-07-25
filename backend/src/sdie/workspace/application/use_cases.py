@@ -19,13 +19,14 @@ from sdie.shared_kernel.infrastructure.event_bus import InProcessEventBus
 from sdie.workspace.application.dto import (
     AddEvidenceCommand,
     CreateEngagementCommand,
+    EngagementDeckData,
     EngagementResult,
     LinkDecisionAnalysisCommand,
     LinkFinancialModelCommand,
     LinkProblemFramingCommand,
     LinkRationaleCommand,
 )
-from sdie.workspace.application.ports import EngagementRepository
+from sdie.workspace.application.ports import EngagementDeckRendererPort, EngagementRepository
 from sdie.workspace.domain.entities import Engagement, WorkspaceError
 
 
@@ -88,6 +89,26 @@ class ClearEngagementHistoryUseCase:
 
     async def execute(self, tenant_id: TenantId) -> int:
         return await self._repository.delete_all_for_tenant(tenant_id)
+
+
+class GenerateEngagementDeckUseCase:
+    """Produces the full, multi-section case deck for an engagement —
+    Situation (problem framing) / Evidence / Quant Analysis / Recommendation.
+    `deck_data` is populated by the router from whichever contexts the
+    engagement has actually linked (see the router for why that
+    cross-context fetch belongs there, not here)."""
+
+    def __init__(self, repository: EngagementRepository, renderer: EngagementDeckRendererPort):
+        self._repository = repository
+        self._renderer = renderer
+
+    async def execute(
+        self, engagement_id: UUID, tenant_id: TenantId, deck_data: EngagementDeckData
+    ) -> bytes:
+        engagement = await self._repository.get(engagement_id, tenant_id)
+        if engagement is None:
+            raise WorkspaceError(f"Engagement {engagement_id} not found")
+        return self._renderer.render(engagement, deck_data)
 
 
 class LinkProblemFramingUseCase:

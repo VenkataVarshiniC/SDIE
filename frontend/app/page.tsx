@@ -63,7 +63,7 @@ export default function HomePage() {
           retrieval, guided strategy frameworks, and an evidence-to-recommendation synthesis
           layer — orchestrated end to end by the workspace below. Validated against a real
           historical decision in{" "}
-          <code className="text-ledger text-xs">case-studies</code>.
+          <code className="text-ledger text-xs">case-studies/blockbuster-netflix-2000.md</code>.
         </p>
       </div>
 

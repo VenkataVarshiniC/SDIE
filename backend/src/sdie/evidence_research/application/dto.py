@@ -22,6 +22,15 @@ class DocumentResult:
 
 
 @dataclass(frozen=True, slots=True)
+class DocumentDetailResult:
+    document_id: UUID
+    title: str
+    source_label: str
+    content: str
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class SearchEvidenceQuery:
     tenant_id: UUID
     query: str

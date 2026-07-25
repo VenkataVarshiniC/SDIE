@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from sdie.evidence_research.application.dto import (
     CitationResult,
+    DocumentDetailResult,
     DocumentResult,
     IngestDocumentCommand,
     SearchEvidenceQuery,
@@ -48,6 +51,23 @@ class ListDocumentsUseCase:
             )
             for d in documents
         ]
+
+
+class GetDocumentUseCase:
+    def __init__(self, repository: DocumentRepository):
+        self._repository = repository
+
+    async def execute(self, document_id: UUID, tenant_id: TenantId) -> DocumentDetailResult | None:
+        document = await self._repository.get(document_id, tenant_id)
+        if document is None:
+            return None
+        return DocumentDetailResult(
+            document_id=document.id,
+            title=document.title,
+            source_label=document.source_label,
+            content=document.content,
+            created_at=document.created_at,
+        )
 
 
 class SearchEvidenceUseCase:

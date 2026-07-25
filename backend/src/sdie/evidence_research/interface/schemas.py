@@ -19,6 +19,14 @@ class DocumentResponse(BaseModel):
     created_at: datetime
 
 
+class DocumentDetailResponse(BaseModel):
+    document_id: UUID
+    title: str
+    source_label: str
+    content: str
+    created_at: datetime
+
+
 class SearchEvidenceRequest(BaseModel):
     query: str = Field(min_length=1)
     limit: int = Field(default=5, ge=1, le=20)

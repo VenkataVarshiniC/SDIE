@@ -1,0 +1,3 @@
+  { href: "/dashboard/evidence-research", label: "Evidence research" },
+  { href: "/dashboard/recommendation-synthesis", label: "Recommendation synthesis" },
+  { href: "/dashboard/problem-framing", label: "Problem framing" },

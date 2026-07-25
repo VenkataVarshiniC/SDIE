@@ -206,6 +206,14 @@ export interface DocumentResponse {
   created_at: string;
 }
 
+export interface DocumentDetailResponse {
+  document_id: string;
+  title: string;
+  source_label: string;
+  content: string;
+  created_at: string;
+}
+
 export interface SearchEvidenceRequest {
   query: string;
   limit?: number;
