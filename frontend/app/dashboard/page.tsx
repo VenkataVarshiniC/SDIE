@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Panel } from "@/components/ui/panel";
@@ -76,6 +76,7 @@ const DEFAULT_SCENARIOS: ScenarioRow[] = [
 
 function FinancialModelingPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const engagementId = searchParams.get("engagement_id");
 
   const [projectName, setProjectName] = useState("Market expansion — EU");
@@ -108,35 +109,43 @@ function FinancialModelingPageInner() {
     setLoading(true);
     setError(null);
     try {
-      const model = await financialModelingApi.createCashFlowModel({
-        project_name: projectName,
-        currency: "USD",
-        discount_rate_percent: discountRate,
-        industry,
-        cash_flows: rows.map((r) => ({ period: r.period, amount: r.amount })),
-      });
+      const lastRow = rows[rows.length - 1];
+
+      // Sensitivity only reads the form's local `rows` state, never the
+      // create response — the two calls were previously awaited back to
+      // back for no reason. Firing them together roughly halves this
+      // flow's network time.
+      const sensitivityPromise = lastRow && !engagementId
+        ? financialModelingApi.runSensitivity({
+            currency: "USD",
+            discount_rate_percent: discountRate,
+            base_cash_flows: rows.map((r) => ({ period: r.period, amount: r.amount })),
+            variable_name: `Year ${lastRow.period} cash flow`,
+            variable_period: lastRow.period,
+            low_amount: String(Number(lastRow.amount) * 0.7),
+            base_amount: String(Number(lastRow.amount)),
+            high_amount: String(Number(lastRow.amount) * 1.3),
+          })
+        : Promise.resolve(null);
+
+      const [model, sens] = await Promise.all([
+        financialModelingApi.createCashFlowModel({
+          project_name: projectName,
+          currency: "USD",
+          discount_rate_percent: discountRate,
+          industry,
+          cash_flows: rows.map((r) => ({ period: r.period, amount: r.amount })),
+        }),
+        sensitivityPromise,
+      ]);
+
       setResult(model);
+      if (sens) setSensitivity(sens);
 
       if (engagementId) {
         await workspaceApi.linkFinancialModel(engagementId, { model_id: model.model_id });
-        window.location.href = `/dashboard/workspace/${engagementId}`;
+        router.push(`/dashboard/workspace/${engagementId}`);
         return;
-      }
-
-      const lastRow = rows[rows.length - 1];
-      if (lastRow) {
-        const base = Number(lastRow.amount);
-        const sens = await financialModelingApi.runSensitivity({
-          currency: "USD",
-          discount_rate_percent: discountRate,
-          base_cash_flows: rows.map((r) => ({ period: r.period, amount: r.amount })),
-          variable_name: `Year ${lastRow.period} cash flow`,
-          variable_period: lastRow.period,
-          low_amount: String(base * 0.7),
-          base_amount: String(base),
-          high_amount: String(base * 1.3),
-        });
-        setSensitivity(sens);
       }
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : "Could not reach the backend.");

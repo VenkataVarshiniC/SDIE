@@ -69,6 +69,15 @@ class SqlAlchemyDocumentRepository(DocumentRepository):
         result = await self._session.execute(stmt)
         return [self._to_domain(row) for row in result.scalars().all()]
 
+    async def get_many(self, document_ids: list[UUID], tenant_id: TenantId) -> list[Document]:
+        if not document_ids:
+            return []
+        stmt = select(DocumentORM).where(
+            DocumentORM.id.in_(document_ids), DocumentORM.tenant_id == tenant_id.value
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain(row) for row in result.scalars().all()]
+
     async def search(self, tenant_id: TenantId, query: str, limit: int = 5) -> list[Citation]:
         tsquery = func.plainto_tsquery("english", query)
         rank = func.ts_rank(DocumentORM.search_vector, tsquery).label("rank")

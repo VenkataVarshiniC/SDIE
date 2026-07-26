@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sdie.problem_framing.application.dto import CreateFrameworkAnalysisCommand
@@ -41,13 +41,17 @@ def _to_response(result) -> FrameworkAnalysisResponse:
 
 
 @router.get("/templates/{framework}", response_model=list[FrameworkSectionSchema])
-async def get_template(framework: str) -> list[FrameworkSectionSchema]:
+async def get_template(framework: str, response: Response) -> list[FrameworkSectionSchema]:
     try:
         sections = GetFrameworkTemplateUseCase().execute(framework)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown framework: {framework}"
         ) from exc
+    # This is compiled-in domain data (FRAMEWORK_TEMPLATES) — it cannot
+    # change without a code deploy, so it's safe to cache client-side
+    # rather than re-fetching and re-serializing it on every page load.
+    response.headers["Cache-Control"] = "public, max-age=3600"
     return [
         FrameworkSectionSchema(key=s.key, label=s.label, guiding_question=s.guiding_question)
         for s in sections

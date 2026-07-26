@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, FileUp } from "lucide-react";
 import { Panel } from "@/components/ui/panel";
 import { Button, Field, TextInput } from "@/components/ui/field";
@@ -11,6 +11,7 @@ import type { CitationResponse, DocumentDetailResponse, DocumentResponse } from 
 
 function EvidenceResearchPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const engagementId = searchParams.get("engagement_id");
 
   const [title, setTitle] = useState("");
@@ -81,7 +82,7 @@ function EvidenceResearchPageInner() {
 
       if (engagementId) {
         await workspaceApi.addEvidence(engagementId, { document_id: doc.document_id });
-        window.location.href = `/dashboard/workspace/${engagementId}`;
+        router.push(`/dashboard/workspace/${engagementId}`);
         return;
       }
     } catch (e) {
@@ -105,7 +106,7 @@ function EvidenceResearchPageInner() {
 
       if (engagementId) {
         await workspaceApi.addEvidence(engagementId, { document_id: doc.document_id });
-        window.location.href = `/dashboard/workspace/${engagementId}`;
+        router.push(`/dashboard/workspace/${engagementId}`);
         return;
       }
     } catch (e) {

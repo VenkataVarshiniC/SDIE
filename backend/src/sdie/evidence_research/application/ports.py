@@ -18,6 +18,13 @@ class DocumentRepository(ABC):
     async def list_for_tenant(self, tenant_id: TenantId) -> list[Document]: ...
 
     @abstractmethod
+    async def get_many(self, document_ids: list[UUID], tenant_id: TenantId) -> list[Document]:
+        """Batch fetch by ID — a single query instead of N individual
+        get() round trips, for callers (like the workspace deck endpoint)
+        that need several specific documents at once."""
+        ...
+
+    @abstractmethod
     async def search(self, tenant_id: TenantId, query: str, limit: int = 5) -> list[Citation]:
         """Full-text search over ingested documents for this tenant.
         Ranking (ts_rank) is a Postgres-native operation, hence this lives

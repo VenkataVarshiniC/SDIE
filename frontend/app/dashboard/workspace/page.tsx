@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Panel } from "@/components/ui/panel";
 import { Button, Field, TextInput } from "@/components/ui/field";
@@ -17,6 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function WorkspacePage() {
+  const router = useRouter();
   const [engagements, setEngagements] = useState<EngagementResponse[]>([]);
   const [listError, setListError] = useState<string | null>(null);
   const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export default function WorkspacePage() {
     try {
       const engagement = await workspaceApi.createEngagement({ title });
       setTitle("");
-      window.location.href = `/dashboard/workspace/${engagement.engagement_id}`;
+      router.push(`/dashboard/workspace/${engagement.engagement_id}`);
     } catch (e) {
       setCreateError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
     } finally {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -36,6 +36,7 @@ const DEFAULT_OPTIONS: OptionRow[] = [
 
 function DecisionAnalysisPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const engagementId = searchParams.get("engagement_id");
 
   const [title, setTitle] = useState("Market entry approach");
@@ -110,7 +111,7 @@ function DecisionAnalysisPageInner() {
 
       if (engagementId) {
         await workspaceApi.linkDecisionAnalysis(engagementId, { analysis_id: res.analysis_id });
-        window.location.href = `/dashboard/workspace/${engagementId}`;
+        router.push(`/dashboard/workspace/${engagementId}`);
         return;
       }
     } catch (e) {

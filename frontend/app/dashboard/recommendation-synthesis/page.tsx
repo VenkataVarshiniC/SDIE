@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Panel } from "@/components/ui/panel";
 import { Button, Field, Select, TextInput } from "@/components/ui/field";
@@ -26,6 +26,7 @@ import type {
 
 function RecommendationSynthesisPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const engagementId = searchParams.get("engagement_id");
 
   // --- create form state ---
@@ -153,7 +154,7 @@ function RecommendationSynthesisPageInner() {
 
       if (engagementId) {
         await workspaceApi.linkRationale(engagementId, { rationale_id: created.rationale_id });
-        window.location.href = `/dashboard/workspace/${engagementId}`;
+        router.push(`/dashboard/workspace/${engagementId}`);
         return;
       }
     } catch (e) {

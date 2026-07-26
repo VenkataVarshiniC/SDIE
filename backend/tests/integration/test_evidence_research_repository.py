@@ -22,6 +22,32 @@ class TestDocumentRepository:
         assert loaded.title == "Test report"
         assert "currency volatility" in loaded.content
 
+    async def test_get_many_returns_only_matching_ids_for_this_tenant(
+        self, tenant_scoped_session, tenant_id
+    ):
+        repo = SqlAlchemyDocumentRepository(tenant_scoped_session)
+        doc_a = Document.create(
+            tenant_id=tenant_id, title="A", source_label="s", content="content a"
+        )
+        doc_b = Document.create(
+            tenant_id=tenant_id, title="B", source_label="s", content="content b"
+        )
+        await repo.save(doc_a)
+        await repo.save(doc_b)
+
+        import uuid as _uuid
+
+        results = await repo.get_many([doc_a.id, doc_b.id, _uuid.uuid4()], tenant_id)
+        result_ids = {d.id for d in results}
+        assert result_ids == {doc_a.id, doc_b.id}
+
+    async def test_get_many_returns_empty_list_for_empty_input(
+        self, tenant_scoped_session, tenant_id
+    ):
+        repo = SqlAlchemyDocumentRepository(tenant_scoped_session)
+        results = await repo.get_many([], tenant_id)
+        assert results == []
+
     async def test_search_finds_matching_document_via_generated_tsvector(
         self, tenant_scoped_session, tenant_id
     ):

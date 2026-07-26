@@ -305,17 +305,23 @@ async def generate_engagement_deck(
 
     if engagement.evidence_document_ids:
         document_repository = SqlAlchemyDocumentRepository(session)
-        summaries = []
-        for document_id in engagement.evidence_document_ids:
-            document = await document_repository.get(document_id, tenant_id)
-            if document is not None:
-                summaries.append(
-                    EvidenceDocumentSummary(
-                        title=document.title,
-                        source_label=document.source_label,
-                        excerpt=_truncate(document.content),
-                    )
-                )
+        # Single batched query instead of one round trip per document —
+        # the loop version was a classic N+1 (N network round trips to the
+        # database for N linked documents); get_many() fetches them all at
+        # once and we just re-order to match the engagement's link order.
+        fetched_documents = await document_repository.get_many(
+            list(engagement.evidence_document_ids), tenant_id
+        )
+        documents_by_id = {d.id: d for d in fetched_documents}
+        summaries = [
+            EvidenceDocumentSummary(
+                title=documents_by_id[document_id].title,
+                source_label=documents_by_id[document_id].source_label,
+                excerpt=_truncate(documents_by_id[document_id].content),
+            )
+            for document_id in engagement.evidence_document_ids
+            if document_id in documents_by_id
+        ]
         deck_data = EngagementDeckData(
             problem_framing=deck_data.problem_framing,
             evidence_documents=summaries,

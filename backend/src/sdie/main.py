@@ -4,6 +4,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from sdie.config import get_settings
 from sdie.decision_analysis.interface.router import router as decision_analysis_router
@@ -29,6 +30,8 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.add_middleware(
     CORSMiddleware,
