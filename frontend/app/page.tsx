@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Panel } from "@/components/ui/panel";
+import { Greeting } from "@/components/greeting";
 
 const WORKSPACE_MODULE = {
   href: "/dashboard/workspace",
@@ -51,6 +52,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-10">
       <div className="border-b border-ink-border pb-8">
+        <Greeting />
         <p className="text-ledger text-[11px] uppercase tracking-wider mb-3">
           Structured decision support — not a chat interface
         </p>
