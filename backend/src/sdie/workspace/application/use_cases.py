@@ -91,6 +91,14 @@ class ClearEngagementHistoryUseCase:
         return await self._repository.delete_all_for_tenant(tenant_id)
 
 
+class DeleteEngagementUseCase:
+    def __init__(self, repository: EngagementRepository):
+        self._repository = repository
+
+    async def execute(self, engagement_id: UUID, tenant_id: TenantId) -> bool:
+        return await self._repository.delete(engagement_id, tenant_id)
+
+
 class GenerateEngagementDeckUseCase:
     """Produces the full, multi-section case deck for an engagement —
     Situation (problem framing) / Evidence / Quant Analysis / Recommendation.

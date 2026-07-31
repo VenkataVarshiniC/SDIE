@@ -35,6 +35,7 @@ from sdie.workspace.application.use_cases import (
     AddEvidenceUseCase,
     ClearEngagementHistoryUseCase,
     CreateEngagementUseCase,
+    DeleteEngagementUseCase,
     GenerateEngagementDeckUseCase,
     GetEngagementUseCase,
     LinkDecisionAnalysisUseCase,
@@ -117,6 +118,22 @@ async def clear_engagement_history(
     deleted_count = await ClearEngagementHistoryUseCase(repository).execute(TenantId(principal.tenant_id))
     await session.commit()
     return ClearHistoryResponse(deleted_count=deleted_count)
+
+
+@router.delete("/engagements/{engagement_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_engagement(
+    engagement_id: UUID,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    await set_tenant_context(session, principal.tenant_id)
+    repository = SqlAlchemyEngagementRepository(session)
+    deleted = await DeleteEngagementUseCase(repository).execute(
+        engagement_id, TenantId(principal.tenant_id)
+    )
+    await session.commit()
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Engagement not found")
 
 
 @router.get("/engagements/{engagement_id}", response_model=EngagementResponse)

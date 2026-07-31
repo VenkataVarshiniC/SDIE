@@ -55,6 +55,14 @@ class SqlAlchemyEngagementRepository(EngagementRepository):
         await self._session.flush()
         return result.rowcount or 0
 
+    async def delete(self, engagement_id: UUID, tenant_id: TenantId) -> bool:
+        stmt = delete(EngagementORM).where(
+            EngagementORM.id == engagement_id, EngagementORM.tenant_id == tenant_id.value
+        )
+        result = await self._session.execute(stmt)
+        await self._session.flush()
+        return (result.rowcount or 0) > 0
+
     @staticmethod
     def _to_domain(row: EngagementORM) -> Engagement:
         engagement = Engagement(

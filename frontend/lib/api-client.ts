@@ -102,6 +102,9 @@ async function deleteRequest<TResponse>(path: string): Promise<TResponse> {
     throw new ApiError(res.status, payload.detail ?? "Request failed");
   }
 
+  if (res.status === 204) {
+    return undefined as TResponse;
+  }
   return res.json() as Promise<TResponse>;
 }
 
@@ -247,6 +250,8 @@ export const workspaceApi = {
     request<EngagementResponse>(`/workspace/engagements/${id}/link-rationale`, req),
 
   clearHistory: () => deleteRequest<{ deleted_count: number }>("/workspace/engagements"),
+
+  deleteEngagement: (id: string) => deleteRequest<void>(`/workspace/engagements/${id}`),
 
   downloadDeck: (id: string) => getBlobRequest(`/workspace/engagements/${id}/deck`),
 };

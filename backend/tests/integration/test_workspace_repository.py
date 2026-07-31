@@ -94,3 +94,41 @@ class TestEngagementRepository:
         repo = SqlAlchemyEngagementRepository(tenant_scoped_session)
         deleted_count = await repo.delete_all_for_tenant(tenant_id)
         assert deleted_count == 0
+
+    async def test_delete_removes_only_the_targeted_engagement(
+        self, tenant_scoped_session, tenant_id
+    ):
+        repo = SqlAlchemyEngagementRepository(tenant_scoped_session)
+        keep = Engagement.create(tenant_id=tenant_id, title="Keep me")
+        remove = Engagement.create(tenant_id=tenant_id, title="Remove me")
+        await repo.save(keep)
+        await repo.save(remove)
+
+        deleted = await repo.delete(remove.id, tenant_id)
+        assert deleted is True
+
+        assert await repo.get(remove.id, tenant_id) is None
+        assert await repo.get(keep.id, tenant_id) is not None
+
+    async def test_delete_returns_false_for_unknown_id(self, tenant_scoped_session, tenant_id):
+        repo = SqlAlchemyEngagementRepository(tenant_scoped_session)
+        deleted = await repo.delete(uuid.uuid4(), tenant_id)
+        assert deleted is False
+
+    async def test_delete_does_not_affect_other_tenants_engagement(self, db_session, tenant_id):
+        from sdie.shared_kernel.domain.value_objects import TenantId
+        from sdie.shared_kernel.infrastructure.database import set_tenant_context
+
+        repo = SqlAlchemyEngagementRepository(db_session)
+
+        other_tenant = TenantId(uuid.uuid4())
+        await set_tenant_context(db_session, other_tenant.value)
+        theirs = Engagement.create(tenant_id=other_tenant, title="Theirs")
+        await repo.save(theirs)
+
+        await set_tenant_context(db_session, tenant_id.value)
+        deleted = await repo.delete(theirs.id, tenant_id)
+        assert deleted is False
+
+        await set_tenant_context(db_session, other_tenant.value)
+        assert await repo.get(theirs.id, other_tenant) is not None

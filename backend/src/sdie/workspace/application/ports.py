@@ -24,6 +24,13 @@ class EngagementRepository(ABC):
         number of rows deleted."""
         ...
 
+    @abstractmethod
+    async def delete(self, engagement_id: UUID, tenant_id: TenantId) -> bool:
+        """Deletes a single engagement. Returns True if a row was actually
+        deleted, False if no engagement with that id existed for this
+        tenant."""
+        ...
+
 
 class EngagementDeckRendererPort(ABC):
     """Renders a full engagement into a multi-section case deck PDF —

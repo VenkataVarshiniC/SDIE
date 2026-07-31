@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { Panel } from "@/components/ui/panel";
 import { Button, Field, TextInput } from "@/components/ui/field";
 import { ApiError, workspaceApi } from "@/lib/api-client";
@@ -23,6 +23,8 @@ export default function WorkspacePage() {
   const [listError, setListError] = useState<string | null>(null);
   const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
   const [clearingHistory, setClearingHistory] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
@@ -66,6 +68,25 @@ export default function WorkspacePage() {
       setClearHistoryError(e instanceof ApiError ? e.detail : "Could not reach the backend.");
     } finally {
       setClearingHistory(false);
+    }
+  }
+
+  async function handleDeleteEngagement(e: MouseEvent, engagementId: string, title: string) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const confirmed = window.confirm(`Delete "${title}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeletingId(engagementId);
+    setDeleteError(null);
+    try {
+      await workspaceApi.deleteEngagement(engagementId);
+      setEngagements((prev) => prev.filter((eng) => eng.engagement_id !== engagementId));
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.detail : "Could not reach the backend.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -118,6 +139,7 @@ export default function WorkspacePage() {
       >
         {listError && <p className="text-signal-down text-sm mb-2">{listError}</p>}
         {clearHistoryError && <p className="text-signal-down text-sm mb-2">{clearHistoryError}</p>}
+        {deleteError && <p className="text-signal-down text-sm mb-2">{deleteError}</p>}
         {engagements.length > 0 ? (
           <div className="flex flex-col divide-y divide-ink-border">
             {engagements.map((e) => (
@@ -130,9 +152,20 @@ export default function WorkspacePage() {
                   <p className="text-sm text-parchment">{e.title}</p>
                   <p className="text-xs text-muted">{new Date(e.created_at).toLocaleString()}</p>
                 </div>
-                <span className="text-xs uppercase tracking-wider text-ledger font-data">
-                  {STATUS_LABEL[e.status] ?? e.status}
-                </span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs uppercase tracking-wider text-ledger font-data">
+                    {STATUS_LABEL[e.status] ?? e.status}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(evt) => handleDeleteEngagement(evt, e.engagement_id, e.title)}
+                    disabled={deletingId === e.engagement_id}
+                    aria-label={`Delete ${e.title}`}
+                    className="text-muted hover:text-signal-down transition-colors disabled:opacity-40"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </Link>
             ))}
           </div>

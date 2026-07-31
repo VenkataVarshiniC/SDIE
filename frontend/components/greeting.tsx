@@ -27,8 +27,17 @@ function summarize(statuses: string[]): string {
 }
 
 export function Greeting() {
-  const [now] = useState(() => new Date());
+  const [now, setNow] = useState(() => new Date());
   const [summary, setSummary] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Re-checks the clock every minute so the greeting flips from
+    // "morning" to "afternoon" etc. while the tab stays open, rather than
+    // only on the initial mount. A minute is frequent enough to feel live
+    // without running a visible per-second clock on a dashboard.
+    const interval = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     workspaceApi

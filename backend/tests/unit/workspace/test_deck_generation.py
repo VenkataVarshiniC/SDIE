@@ -35,6 +35,12 @@ class FakeRepository(EngagementRepository):
         self._engagement = None
         return count
 
+    async def delete(self, engagement_id, tenant_id):
+        if self._engagement and self._engagement.id == engagement_id:
+            self._engagement = None
+            return True
+        return False
+
 
 class FakeRenderer(EngagementDeckRendererPort):
     def __init__(self):
