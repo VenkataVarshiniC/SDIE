@@ -60,6 +60,11 @@ with zero LLM dependency.
   ranges, IRR hurdles by sector — pass `industry` on creation) and returns
   `flags`: plain-language warnings when a discount rate, IRR, or cash flow
   pattern sits outside where similar deals normally land.
+  It also includes a five-year operating forecast (revenue through FCFF),
+  driver-based scenario/sensitivity analysis, revenue-growth break-even,
+  and exact 0-1 capital-budget optimization with dependencies and mutually
+  exclusive project groups. The capital-allocation dashboard is at
+  `/dashboard/capital-allocation` and exports a ten-section investment memo.
 - **decision_analysis** — MCDA ranking, decision-tree EMV/EVPI, Monte
   Carlo, Bayesian updating, plus two robustness checks: `weight_robustness`
   (how far each MCDA criterion's weight would have to move, holding the
@@ -95,8 +100,8 @@ with zero LLM dependency.
 
 ## Testing & CI
 
-- `tests/unit/` — 86 tests, pure domain logic, no I/O.
-- `tests/integration/` — 18 tests, real Postgres round-trips, each
+- `tests/unit/` — 109 tests, pure domain/application/reporting logic.
+- `tests/integration/` — 34 tests, real Postgres round-trips, each
   wrapped in a rolled-back transaction, skip cleanly if `SDIE_DATABASE_URL`
   doesn't resolve.
 - `.github/workflows/ci.yml` — both suites + ruff + frontend typecheck/build
@@ -163,3 +168,14 @@ Blockbuster/Netflix acquisition decision, run through SDIE's live MCDA and
 recommendation-synthesis APIs using only publicly cited facts, with the actual generated
 one-pager PDF as the deliverable. Useful as a worked example of the full pipeline
 (quant analysis → evidence-grounded rationale → board-ready export) end to end.
+
+`case-studies/software-product-capital-allocation.json` — a clearly hypothetical,
+reproducible software-investment case with three candidates, a shared $8.5M budget,
+five-year cash flows, downside assumptions, and an explicit project dependency.
+Run it from `backend/` with:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_financial_case_study.py --pdf ..\docs\FY27-investment-memo.pdf
+```
+
+Methodology, validation, results, and resume evidence are in `docs/`.

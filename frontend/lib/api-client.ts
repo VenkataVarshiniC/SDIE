@@ -1,6 +1,10 @@
 import type {
   AddEvidenceRequest,
+  AnalyzeOperatingForecastRequest,
+  AnalyzeOperatingForecastResponse,
   AnalysisSummary,
+  CapitalAllocationRequest,
+  CapitalAllocationResponse,
   CashFlowModelResponse,
   CitationResponse,
   CreateCashFlowModelRequest,
@@ -10,6 +14,7 @@ import type {
   DocumentDetailResponse,
   DocumentResponse,
   EngagementResponse,
+  ExecutiveInvestmentMemoRequest,
   EvaluateDecisionTreeRequest,
   EvaluateDecisionTreeResponse,
   EvaluateScenariosRequest,
@@ -122,6 +127,23 @@ async function getBlobRequest(path: string): Promise<Blob> {
   return res.blob();
 }
 
+async function postBlobRequest(path: string, body: unknown): Promise<Blob> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...devPrincipalHeaders(),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new ApiError(res.status, payload.detail ?? "Request failed");
+  }
+  return res.blob();
+}
+
 async function postFormData<TResponse>(path: string, formData: FormData): Promise<TResponse> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
@@ -149,6 +171,15 @@ export const financialModelingApi = {
 
   runSensitivity: (req: SensitivityRequest) =>
     request<SensitivityResponse>("/financial-modeling/sensitivity", req),
+
+  analyzeOperatingForecast: (req: AnalyzeOperatingForecastRequest) =>
+    request<AnalyzeOperatingForecastResponse>("/financial-modeling/operating-forecast/analyze", req),
+
+  optimizeCapitalAllocation: (req: CapitalAllocationRequest) =>
+    request<CapitalAllocationResponse>("/financial-modeling/capital-allocation/optimize", req),
+
+  downloadExecutiveInvestmentMemo: (req: ExecutiveInvestmentMemoRequest) =>
+    postBlobRequest("/financial-modeling/capital-allocation/executive-memo", req),
 };
 
 export const decisionAnalysisApi = {

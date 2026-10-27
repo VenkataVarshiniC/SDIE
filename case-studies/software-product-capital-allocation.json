@@ -1,0 +1,116 @@
+{
+  "case_type": "hypothetical",
+  "case_note": "Synthetic analyst assumptions for demonstration; not actual company results.",
+  "allocation": {
+    "portfolio_name": "FY27 software product expansion",
+    "business_context": "A hypothetical mid-market software company is choosing among three growth investments under a shared FY27 capital ceiling. All forecasts are synthetic analyst assumptions, not actual company results.",
+    "currency": "USD",
+    "capital_budget": "8500000",
+    "discount_rate_percent": "9.34",
+    "baseline_investment_ids": ["data-foundation", "international-self-serve"],
+    "investments": [
+      {
+        "investment_id": "data-foundation",
+        "name": "Data foundation modernization",
+        "initial_capital": "2500000",
+        "future_cash_flows": ["450000", "750000", "1050000", "1350000", "1550000"],
+        "downside_cash_flows": ["300000", "500000", "700000", "900000", "1050000"],
+        "risk_assumption": "Migration may run one quarter late; downside assumes lower productivity savings and delayed platform reuse.",
+        "strategic_priority": 5,
+        "dependencies": []
+      },
+      {
+        "investment_id": "enterprise-ai",
+        "name": "Enterprise AI workflow module",
+        "initial_capital": "4500000",
+        "future_cash_flows": ["1200000", "1700000", "2400000", "3100000", "3700000"],
+        "downside_cash_flows": ["600000", "900000", "1300000", "1700000", "2000000"],
+        "risk_assumption": "Enterprise adoption and model-inference costs are the principal uncertainties; downside assumes a slower sales ramp.",
+        "strategic_priority": 5,
+        "dependencies": ["data-foundation"]
+      },
+      {
+        "investment_id": "international-self-serve",
+        "name": "International self-serve expansion",
+        "initial_capital": "3000000",
+        "future_cash_flows": ["700000", "1100000", "1550000", "1950000", "2250000"],
+        "downside_cash_flows": ["250000", "500000", "800000", "1050000", "1250000"],
+        "risk_assumption": "Localization, customer acquisition cost, and conversion are uncertain; downside assumes two years of slower penetration.",
+        "strategic_priority": 4,
+        "dependencies": []
+      }
+    ]
+  },
+  "forecast_analysis": {
+    "base_case": {
+      "project_name": "Enterprise AI module — base",
+      "currency": "USD",
+      "base_revenue": "12000000",
+      "initial_investment": "4500000",
+      "revenue_growth_percent_by_year": ["12", "15", "18", "16", "12"],
+      "gross_margin_percent": "78",
+      "operating_expense_percent_of_revenue": "58",
+      "depreciation_amortization_percent_of_revenue": "3",
+      "tax_rate_percent": "25",
+      "capital_expenditure_percent_of_revenue": "6",
+      "working_capital_percent_of_revenue": "8",
+      "discount_rate_percent": "9.34"
+    },
+    "scenarios": [
+      {
+        "name": "Downside",
+        "probability_percent": "25",
+        "assumptions": {
+          "project_name": "Enterprise AI module — downside",
+          "currency": "USD",
+          "base_revenue": "12000000",
+          "initial_investment": "4500000",
+          "revenue_growth_percent_by_year": ["5", "7", "8", "8", "6"],
+          "gross_margin_percent": "72",
+          "operating_expense_percent_of_revenue": "61",
+          "depreciation_amortization_percent_of_revenue": "3",
+          "tax_rate_percent": "25",
+          "capital_expenditure_percent_of_revenue": "8",
+          "working_capital_percent_of_revenue": "8",
+          "discount_rate_percent": "9.34"
+        }
+      },
+      {
+        "name": "Base",
+        "probability_percent": "50",
+        "assumptions": {
+          "project_name": "Enterprise AI module — base",
+          "currency": "USD",
+          "base_revenue": "12000000",
+          "initial_investment": "4500000",
+          "revenue_growth_percent_by_year": ["12", "15", "18", "16", "12"],
+          "gross_margin_percent": "78",
+          "operating_expense_percent_of_revenue": "58",
+          "depreciation_amortization_percent_of_revenue": "3",
+          "tax_rate_percent": "25",
+          "capital_expenditure_percent_of_revenue": "6",
+          "working_capital_percent_of_revenue": "8",
+          "discount_rate_percent": "9.34"
+        }
+      },
+      {
+        "name": "Upside",
+        "probability_percent": "25",
+        "assumptions": {
+          "project_name": "Enterprise AI module — upside",
+          "currency": "USD",
+          "base_revenue": "12000000",
+          "initial_investment": "4500000",
+          "revenue_growth_percent_by_year": ["17", "21", "23", "19", "15"],
+          "gross_margin_percent": "81",
+          "operating_expense_percent_of_revenue": "56",
+          "depreciation_amortization_percent_of_revenue": "3",
+          "tax_rate_percent": "25",
+          "capital_expenditure_percent_of_revenue": "5",
+          "working_capital_percent_of_revenue": "8",
+          "discount_rate_percent": "9.34"
+        }
+      }
+    ]
+  }
+}

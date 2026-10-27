@@ -66,11 +66,16 @@ def internal_rate_of_return(
         if derivative == 0:
             break
         new_rate = rate - npv / derivative
+        # Newton steps can diverge to enormous positive rates for lumpy,
+        # multi-period project cash flows. The bisection fallback below is
+        # bounded to the same economically meaningful domain and is both
+        # deterministic and fast, so switch to it instead of exponentiating
+        # huge Decimals for the remaining iterations.
+        if new_rate <= Decimal("-0.999") or new_rate > Decimal("10"):
+            break
         if abs(new_rate - rate) < _IRR_TOLERANCE:
             return Percentage(new_rate)
         rate = new_rate
-        if rate <= Decimal("-0.999"):
-            rate = Decimal("-0.5")  # keep iteration in a sane domain
 
     return _irr_by_bisection(cash_flows)
 
@@ -227,11 +232,17 @@ def evaluate_assumption_flags(
     irr: Percentage | None,
     industry: str | None = None,
 ) -> list[str]:
-    from sdie.financial_modeling.domain.benchmarks import get_benchmark
+    from sdie.financial_modeling.domain.benchmarks import FINANCIAL_SECTOR_KEYS, get_benchmark
 
     benchmark = get_benchmark(industry)
     flags: list[str] = []
     discount_pct = discount_rate.as_percent()
+
+    if benchmark.industry in FINANCIAL_SECTOR_KEYS:
+        flags.append(
+            "Financial-sector WACC is only a rough anchor: deposits and regulatory capital make "
+            "bank funding structurally different from non-financial corporate debt."
+        )
 
     if discount_pct < benchmark.typical_wacc_low:
         flags.append(

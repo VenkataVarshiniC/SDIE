@@ -72,6 +72,143 @@ export interface SensitivityResponse {
   swing: string;
 }
 
+export interface OperatingForecastAssumptions {
+  project_name: string;
+  currency: string;
+  base_revenue: string;
+  initial_investment: string;
+  revenue_growth_percent_by_year: string[];
+  gross_margin_percent: string;
+  operating_expense_percent_of_revenue: string;
+  depreciation_amortization_percent_of_revenue: string;
+  tax_rate_percent: string;
+  capital_expenditure_percent_of_revenue: string;
+  working_capital_percent_of_revenue: string;
+  discount_rate_percent: string;
+}
+
+export interface OperatingForecastScenario {
+  name: string;
+  probability_percent: string;
+  assumptions: OperatingForecastAssumptions;
+}
+
+export interface AnalyzeOperatingForecastRequest {
+  base_case: OperatingForecastAssumptions;
+  scenarios: OperatingForecastScenario[];
+}
+
+export interface ForecastYear {
+  year: number;
+  revenue_growth_percent: string;
+  revenue: string;
+  gross_profit: string;
+  operating_expenses: string;
+  ebitda: string;
+  depreciation_amortization: string;
+  ebit: string;
+  taxes: string;
+  nopat: string;
+  capital_expenditures: string;
+  change_in_working_capital: string;
+  free_cash_flow: string;
+}
+
+export interface ForecastValuation {
+  project_name: string;
+  npv: string;
+  irr_percent: string | null;
+  payback_period: string | null;
+  years: ForecastYear[];
+}
+
+export interface ForecastScenarioOutcome {
+  name: string;
+  probability_percent: string;
+  npv: string;
+  irr_percent: string | null;
+}
+
+export interface ForecastSensitivityPoint {
+  driver: string;
+  case: string;
+  shock_percentage_points: string;
+  npv: string;
+}
+
+export interface AnalyzeOperatingForecastResponse {
+  base_case: ForecastValuation;
+  scenarios: ForecastScenarioOutcome[];
+  probability_weighted_npv: string;
+  sensitivity: ForecastSensitivityPoint[];
+  break_even_revenue_growth_percent: string | null;
+  formulas: Record<string, string>;
+  sensitivity_range_note: string;
+}
+
+export interface InvestmentOpportunityInput {
+  investment_id: string;
+  name: string;
+  initial_capital: string;
+  future_cash_flows: string[];
+  downside_cash_flows: string[];
+  risk_assumption: string;
+  strategic_priority: number;
+  dependencies: string[];
+  mutually_exclusive_group?: string | null;
+}
+
+export interface CapitalAllocationRequest {
+  portfolio_name: string;
+  business_context: string;
+  currency: string;
+  capital_budget: string;
+  discount_rate_percent: string;
+  investments: InvestmentOpportunityInput[];
+  baseline_investment_ids?: string[] | null;
+}
+
+export interface InvestmentMetrics {
+  investment_id: string;
+  name: string;
+  initial_capital: string;
+  npv: string;
+  irr_percent: string | null;
+  payback_period: string | null;
+  downside_npv: string;
+  downside_exposure: string;
+  risk_assumption: string;
+  strategic_priority: number;
+  dependencies: string[];
+  mutually_exclusive_group: string | null;
+}
+
+export interface CapitalAllocationResponse {
+  portfolio_name: string;
+  currency: string;
+  capital_budget: string;
+  capital_used: string;
+  capital_utilization_percent: string;
+  selected_investment_ids: string[];
+  rejected_investment_ids: string[];
+  portfolio_npv: string;
+  portfolio_irr_percent: string | null;
+  portfolio_payback_period: string | null;
+  downside_portfolio_npv: string;
+  downside_exposure: string;
+  baseline_investment_ids: string[];
+  baseline_npv: string;
+  incremental_npv_vs_baseline: string;
+  portfolio_cash_flows: CashFlowInput[];
+  investments: InvestmentMetrics[];
+  optimization_method: string;
+}
+
+export interface ExecutiveInvestmentMemoRequest {
+  allocation: CapitalAllocationRequest;
+  forecast_analysis: AnalyzeOperatingForecastRequest;
+}
+
 // --- decision analysis ---
 
 export interface CriterionInput {

@@ -12,36 +12,43 @@ const WORKSPACE_MODULE = {
 
 const MODULES = [
   {
+    href: "/dashboard/capital-allocation",
+    eyebrow: "01 — Finance leadership",
+    title: "Capital allocation",
+    description:
+      "Five-year operating forecasts, driver sensitivity, scenario-weighted valuation, and exact portfolio optimization under a shared capital constraint.",
+  },
+  {
     href: "/dashboard",
-    eyebrow: "01 — Quant core",
+    eyebrow: "02 — Quant core",
     title: "Financial modeling",
     description:
       "Discounted cash flow, scenario weighting, one-way sensitivity, industry-benchmarked assumption flags. Deterministic, reproducible, no model in the loop.",
   },
   {
     href: "/dashboard/decision-analysis",
-    eyebrow: "02 — Quant core",
+    eyebrow: "03 — Quant core",
     title: "Decision analysis",
     description:
       "Multi-criteria ranking, decision trees, Monte Carlo, and weight-robustness checks. Every score traces to a stated weight and a raw input.",
   },
   {
     href: "/dashboard/evidence-research",
-    eyebrow: "03 — Evidence core",
+    eyebrow: "04 — Evidence core",
     title: "Evidence research",
     description:
       "Ingest source documents, retrieve by exact-excerpt citation via Postgres full-text search. No paraphrasing, no vector database.",
   },
   {
     href: "/dashboard/recommendation-synthesis",
-    eyebrow: "04 — Synthesis core",
+    eyebrow: "05 — Synthesis core",
     title: "Recommendation synthesis",
     description:
       "Fuses quant output with cited evidence into one auditable recommendation, with append-only overrides and a board-ready PDF export.",
   },
   {
     href: "/dashboard/problem-framing",
-    eyebrow: "05 — Framing core",
+    eyebrow: "06 — Framing core",
     title: "Problem framing",
     description:
       "Guided strategy frameworks — Five Forces, SWOT — as structured section lists, so a user can't skip a dimension of the analysis.",

@@ -1,6 +1,9 @@
 from decimal import Decimal
 
 from sdie.financial_modeling.domain.benchmarks import INDUSTRY_BENCHMARKS, get_benchmark
+from sdie.financial_modeling.domain.entities import CashFlow
+from sdie.financial_modeling.domain.services import evaluate_assumption_flags
+from sdie.shared_kernel.domain.value_objects import Money, Percentage
 
 
 class TestIndustryBenchmarks:
@@ -33,3 +36,12 @@ class TestIndustryBenchmarks:
         utilities = get_benchmark("utilities")
         software = get_benchmark("software")
         assert utilities.source_wacc_point_estimate < software.source_wacc_point_estimate
+
+    def test_banking_benchmark_surfaces_sector_limitation(self):
+        flags = evaluate_assumption_flags(
+            discount_rate=Percentage.from_percent(5),
+            cash_flows=[CashFlow(0, Money(Decimal("-100"))), CashFlow(1, Money(Decimal("110")))],
+            irr=None,
+            industry="banking",
+        )
+        assert any("regulatory capital" in flag for flag in flags)
